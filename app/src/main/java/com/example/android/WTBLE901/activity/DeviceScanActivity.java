@@ -37,11 +37,15 @@ import wtzn.wtbtble901.R;
  */
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -75,7 +79,7 @@ public class DeviceScanActivity extends ListActivity {
 
     private TextView tvTitle, tvScan;
 
-    public final static int PERMISSION_REQUEST_COARSE_LOCATION = 2;
+    public final static int PERMISSION_REQUEST_FINE_LOCATION = 2;
 
 
     @Override
@@ -168,8 +172,8 @@ public class DeviceScanActivity extends ListActivity {
         //蓝牙连接
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Android M Permission check
-            if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+            if (this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_FINE_LOCATION);
             }
         }
 
@@ -221,7 +225,7 @@ public class DeviceScanActivity extends ListActivity {
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
             mScanning = false;
         }
         startActivity(intent);
@@ -234,18 +238,24 @@ public class DeviceScanActivity extends ListActivity {
                 @Override
                 public void run() {
                     mScanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                    mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
 //                    invalidateOptionsMenu();
                     tvScan.setText(getString(R.string.menu_scan));
                 }
             }, SCAN_PERIOD);
 
             mScanning = true;
-            mBluetoothAdapter.startLeScan(mLeScanCallback);
+            mBluetoothAdapter.getBluetoothLeScanner().startScan(new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+                }
+            });
+            mBluetoothAdapter.getBluetoothLeScanner().startScan(mLeScanCallback);
             tvScan.setText(getString(R.string.menu_stop));
         } else {
             mScanning = false;
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
             tvScan.setText(getString(R.string.menu_scan));
         }
 //        invalidateOptionsMenu();
@@ -266,11 +276,11 @@ public class DeviceScanActivity extends ListActivity {
             mInflator = DeviceScanActivity.this.getLayoutInflater();
         }
 
-        public void addDevice(BluetoothDevice device, int rssi, byte[] scanRecord) {
+        public void addDevice(BluetoothDevice device, int rssi, ScanRecord record) {
             if (!mLeDevices.contains(device)) {
                 mLeDevices.add(device);
                 mRSSIs.add(rssi);
-                mRecords.add(scanRecord);
+                mRecords.add(record.getBytes());
             }
         }
 
@@ -324,20 +334,20 @@ public class DeviceScanActivity extends ListActivity {
     }
 
     // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
+    private ScanCallback mLeScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, final ScanResult result) {
+            super.onScanResult(callbackType, result);
 
+            runOnUiThread(new Runnable() {
                 @Override
-                public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mLeDeviceListAdapter.addDevice(device, rssi, scanRecord);
-                            mLeDeviceListAdapter.notifyDataSetChanged();
-                        }
-                    });
+                public void run() {
+                    mLeDeviceListAdapter.addDevice(result.getDevice(), result.getRssi(), result.getScanRecord());
+                    mLeDeviceListAdapter.notifyDataSetChanged();
                 }
-            };
+            });
+        }
+    };
 
     static class ViewHolder {
         TextView deviceName;
