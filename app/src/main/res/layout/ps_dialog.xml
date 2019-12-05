@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/circle_corner_button"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="30dp">
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Please enter your ID number" />
+
+    <EditText
+        android:id="@+id/et_putPs"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/circle_corner_button"
+        android:inputType="number"
+        android:maxLength="2"
+        android:singleLine="true"
+        android:textColor="@color/black" />
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/bt_abolish"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:layout_marginRight="30dp"
+            android:background="@drawable/btn_gray"
+            android:text="Cancel" />
+
+        <Button
+            android:id="@+id/bt_sure"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:background="@drawable/btn_blue"
+            android:text="Sure" />
+
+
+    </LinearLayout>
+</LinearLayout>

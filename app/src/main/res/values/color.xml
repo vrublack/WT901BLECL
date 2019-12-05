@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bgf3f3f3">#f3f3f3</color>
+    <color name="bgf1fbff">#f1fbff</color>
+    <color name="bgdddddd">#dddddd</color>
+    <color name="tv333333">#333333</color>
+    <color name="tvFF9600">#FF9600</color>
+    <color name="tv00CF69">#00CF69</color>
+    <color name="linedddddd">#f3f3f3</color>
+    <color name="tv28AFE4">#28AFE4</color>
+    <color name="tvee5567">#ee5567</color>
+
+
+    <color name="switch_select">#1274c7</color>
+    <color name="user_center_green">#6cc100</color>
+    <color name="red_db3850">#db3850</color>
+
+
+    <color name="accent_1">#ff29549f</color>
+    <color name="colorTextPrimary">#FFFFFF</color>
+    <color name="draw_nor">#1274c7</color>
+    <color name="draw_pro">#ff29549f</color>
+
+
+    <!-- <color name="theme_secondary">#f9f9f9</color> -->
+    <color name="theme_secondary">#ee6c2d</color>
+    <color name="theme">#ee6c2d</color>
+    <color name="gray">#6e6e6e</color>
+    <color name="gray_f1f1f1">#f1f1f1</color>
+    <color name="white">#ffffff</color>
+    <color name="red">#8fff0000</color>
+    <color name="white_gray">#fcd4bc</color>
+    <color name="blue">#1e8dff</color>
+    <color name="transparent">#00000000</color>
+    <color name="transparent_99000000">#99000000</color>
+    <color name="transparent_b0000000">#e0666666</color>
+    <color name="title_bartitle_bar">#CCfa9f29</color>
+    <color name="common_bg">#f3f3f3</color>
+    <color name="common_list_divide">#cccccc</color>
+    <color name="common_list_item_p">#e8e6de</color>
+    <color name="common_list_item_n">#f3f3f3</color>
+    <color name="common_t1">#000000</color>
+    <color name="common_t2">#5f5f5f</color>
+    <color name="common_t3">#a0a0a0</color>
+
+    <!-- 个人中心色值 -->
+    <color name="user_center_orange">#ef662f</color>
+    <color name="user_center_gray">#696969</color>
+    <color name="user_center_lessgray">#dedede</color>
+    <color name="user_center_black">#000000</color>
+    <color name="user_center_blue">#1274c7</color>
+    <color name="user_center_pink">#f941d4</color>
+    <color name="user_center_photo">#ff702a</color>
+    <color name="user_center_yellow">#ffa002</color>
+
+    <!-- 影院色值 -->
+    <color name="cinema_screening_item">#e6e6e6</color>
+    <color name="cinema_screening_content">#f3f3f3</color>
+    <color name="cinema_screening_popbg">#70000000</color>
+    <color name="play_unavail">#fff2f2f2</color>
+    <color name="cinema_filter_head">#f0efee</color>
+
+    <!-- common color -->
+    <color name="common_dark">#000000</color>
+    <color name="common_black">#4d4d4d</color>
+    <color name="common_gray">#868686</color>
+    <color name="common_light">#ffffff</color>
+    <color name="common_transparent">#9000</color>
+
+
+    <!-- side drawer -->
+    <color name="drawer_bk">#3b3029</color>
+
+    <!-- home -->
+    <color name="bk_light">#f3f3f3</color>
+    <color name="bk_gray">#e8e6de</color>
+    <color name="click_p">#e5e5e5</color>
+    <color name="bk_white">#f3f3f3</color>
+    <color name="font_gray">#a0a0a0</color>
+    <color name="font_red">#ee6c2d</color>
+    <color name="posterAlphabg">#B2000000</color>
+    <color name="posterMovieName">#de6226</color>
+    <color name="color_DE6226">#DE6226</color>
+    <color name="light_grey">#a0a0a0</color>
+    <color name="dark_grey">#5f5f5f</color>
+    <color name="black">#000000</color>
+    <color name="list_divider">#cccccc</color>
+    <color name="cinema_feature_color_1">#ef662f</color>
+    <color name="cinema_feature_color_2">#efc42f</color>
+    <color name="cinema_feature_color_3">#61cb40</color>
+    <color name="cinema_feature_color_4">#6f78c8</color>
+    <color name="cinema_feature_color_5">#1bc9cb</color>
+    <color name="cinema_feature_color_6">#c16fc8</color>
+
+    <color name="grey_eaeaea">#eaeaea</color>
+    <color name="grey_d3d3d3">#d3d3d3</color>
+    <!--主色-->
+    <color name="red_ee5567">#ee5567</color>
+    <color name="red_c33146">#c33146</color>
+    <color name="red_a8182d">#a8182d</color>
+    <color name="yellow_FF950D">#FF950D</color>
+    <color name="yellow_e5860c">#e5860c</color>
+    <!--背景色-->
+    <color name="bg_f0f0f0">#f0f0f0</color>
+    <color name="bg_f8f8f8">#f8f8f8</color>
+    <!--线条-->6
+    <color name="lines_e0e0e0">#e0e0e0</color>
+    <!--文字-->
+    <color name="tvd2d2d2">#d2d2d2</color>
+
+</resources>

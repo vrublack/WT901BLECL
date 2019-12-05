@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+    <TextView
+        style="@style/mTextView"
+        android:layout_height="15dp"
+        android:background="@color/accent_1" />
+
+    <TextView
+        style="@style/mTextView"
+        android:text="@string/Setting" />
+
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+
+    <TextView
+        android:id="@+id/tv_acli"
+        style="@style/mTextView"
+        android:text="@string/AccCali"></TextView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_cali_l"
+        style="@style/mTextView"
+        android:text="@string/AccCaliL" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_cali_r"
+        style="@style/mTextView"
+        android:text="@string/AccCaliR" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_magcali"
+        style="@style/mTextView"
+        android:text="@string/MagCali" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_d0"
+        style="@style/mTextView"
+        android:text="D0" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_d1"
+        style="@style/mTextView"
+        android:text="D1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_d2"
+        style="@style/mTextView"
+        android:text="D2" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_d3"
+        style="@style/mTextView"
+        android:text="D3" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_rate"
+        style="@style/mTextView"
+        android:text="@string/Rate" />
+
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_resume"
+        style="@style/mTextView"
+        android:text="@string/Resume" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_rename"
+        style="@style/mTextView"
+        android:text="@string/Rename" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+</LinearLayout>
