@@ -158,6 +158,6 @@ public class Data {
     }
 
     public String getFormattedTime() {
-        return new SimpleDateFormat("HH:mm:ss.SSS").format(time);
+        return new SimpleDateFormat("HH:mm:ss.SSS").format(time.getTime());
     }
 }

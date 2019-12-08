@@ -126,6 +126,12 @@
         android:id="@+id/tv_rename"
         style="@style/mTextView"
         android:text="@string/Rename" />
+
+    <TextView
+        android:id="@+id/tv_disconnect"
+        style="@style/mTextView"
+        android:text="@string/disconnect" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="0.5dp"

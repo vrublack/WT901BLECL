@@ -64,4 +64,5 @@
     <string name="sensor_status_channel">Sensor status</string>
     <string name="recording">Recording</string>
     <string name="not_recording">Not recording</string>
+    <string name="disconnect">Disconnect</string>
 </resources>

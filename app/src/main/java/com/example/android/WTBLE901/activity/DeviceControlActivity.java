@@ -58,6 +58,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
+    private static final int REQUEST_CONNECT_DEVICE = 1;
 
     private String mToConnectTo;
     private BluetoothLeService mService;
@@ -417,9 +418,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         }
         setContentView(R.layout.gatt_services_characteristics);
         initDraw();
-        final Intent intent = getIntent();
-        String mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
-        mToConnectTo = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
         // viewpager  linearlayout
         mViewPager = (ViewPager) findViewById(R.id.mViewPager);
         mLayout = (LinearLayout) findViewById(R.id.mLayout);
@@ -427,7 +425,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 //        getActionBar().setTitle(mDeviceName);
 //        getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
         btnAcc = (Button) findViewById(R.id.btnAcc);
         btnAcc.setOnClickListener(this);
         btnGyro = (Button) findViewById(R.id.btnGyro);
@@ -466,6 +463,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             public void run() {
                 while (true) {
                     try {
+                        // TODO what is this?
                         if (mConnected) {
                             handler.sendEmptyMessageAtTime(0, 5000);
                             switch (DisplayIndex) {
@@ -551,6 +549,34 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 mService.toggleRecording();
             }
         });
+
+        if (!BluetoothLeService.isRunning) {
+            if (getDefaultDevice() == null) {
+                try {
+                    Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
+                    startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                } catch (Exception err) {
+                }
+            } else {
+                mToConnectTo = getDefaultDevice();
+            }
+        }
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        switch (requestCode) {
+            case REQUEST_CONNECT_DEVICE:// When DeviceListActivity returns with a device to connect
+                if (intent != null) {
+                    String mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
+                    mToConnectTo = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
+                    setDefaultDevice(mToConnectTo);
+                    if (resultCode == Activity.RESULT_OK && mService != null) {
+                        mService.connect(mToConnectTo);
+                        mToConnectTo = null;
+                    }
+                }
+                break;
+        }
     }
 
 
@@ -739,6 +765,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         TextView rete = (TextView) findViewById(R.id.tv_rate);
         TextView resume = (TextView) findViewById(R.id.tv_resume);
         TextView rename = (TextView) findViewById(R.id.tv_rename);
+        TextView disconnect = (TextView) findViewById(R.id.tv_disconnect);
         //加计校准
         acli.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -885,6 +912,23 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                         }).show();
             }
         });
+
+        disconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mService != null && mService.isConnected()) {
+                    mService.disconnect();
+                    setDefaultDevice(null);
+                } else {
+                    try {
+                        Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
+                        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                    } catch (Exception err) {
+                    }
+                }
+            }
+        });
+
     }
 
     private void initChart() {
@@ -964,7 +1008,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
         // maybe the service was running in the background but the activity was destroyed
         bindService(new Intent(this, BluetoothLeService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
-
     }
 
     private void startSensorService() {
@@ -991,13 +1034,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             unbindService(mServiceConnection);
             mService = null;
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unbindService(mServiceConnection);
-        mService = null;
     }
 
     @Override

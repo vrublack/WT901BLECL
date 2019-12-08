@@ -77,7 +77,7 @@ public class DeviceScanActivity extends ListActivity {
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
-    private TextView tvTitle, tvScan;
+    private TextView tvScan;
 
     public final static int PERMISSION_REQUEST_FINE_LOCATION = 2;
 
@@ -92,10 +92,7 @@ public class DeviceScanActivity extends ListActivity {
         }
         setContentView(R.layout.act_device);
 
-        //代替掉setContentView
-//        getActionBar().setTitle(R.string.title_devices);
-
-        tvTitle = (TextView) findViewById(R.id.tv_title);
+        TextView tvTitle = (TextView) findViewById(R.id.tv_title);
         tvScan = (TextView) findViewById(R.id.tv_scan);
         tvScan.setText(getString(R.string.menu_stop));
         tvScan.setOnClickListener(new View.OnClickListener() {
@@ -132,38 +129,6 @@ public class DeviceScanActivity extends ListActivity {
         }
 
     }
-
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        getMenuInflater().inflate(R.menu.main, menu);
-//        if (!mScanning) {
-//            menu.findItem(R.id.menu_stop).setVisible(false);
-//            menu.findItem(R.id.menu_scan).setVisible(true);
-//            menu.findItem(R.id.menu_refresh).setActionView(null);
-//        } else {
-//            menu.findItem(R.id.menu_stop).setVisible(true);
-//            menu.findItem(R.id.menu_scan).setVisible(false);
-//            menu.findItem(R.id.menu_refresh).setActionView(
-//                    R.layout.actionbar_indeterminate_progress);
-//        }
-//        return true;
-//    }
-
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        int i = item.getItemId();
-//        if (i == R.id.menu_scan) {
-//            mLeDeviceListAdapter.clear();
-//            scanLeDevice(true);
-//
-//        } else if (i == R.id.menu_stop) {
-//            scanLeDevice(false);
-//
-//        }
-//        return true;
-
-
-//    }
 
     @Override
     protected void onResume() {
@@ -221,7 +186,8 @@ public class DeviceScanActivity extends ListActivity {
             mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
             mScanning = false;
         }
-        startActivity(intent);
+        setResult(Activity.RESULT_OK, intent);
+        finish();
     }
 
     private void scanLeDevice(final boolean enable) {
@@ -232,7 +198,6 @@ public class DeviceScanActivity extends ListActivity {
                 public void run() {
                     mScanning = false;
                     mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
-//                    invalidateOptionsMenu();
                     tvScan.setText(getString(R.string.menu_scan));
                 }
             }, SCAN_PERIOD);
@@ -251,7 +216,6 @@ public class DeviceScanActivity extends ListActivity {
             mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
             tvScan.setText(getString(R.string.menu_scan));
         }
-//        invalidateOptionsMenu();
     }
 
     // Adapter for holding devices found through scanning.

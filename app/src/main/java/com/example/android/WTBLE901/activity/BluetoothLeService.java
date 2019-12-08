@@ -321,6 +321,7 @@ public class BluetoothLeService extends Service {
         disconnect();
         removeNotification();
         unregisterReceiver(mGattUpdateReceiver);
+        isRunning = false;
     }
 
     private final IBinder mBinder = new LocalBinder();
@@ -575,6 +576,10 @@ public class BluetoothLeService extends Service {
 
     public boolean isRecording() {
         return mRecording;
+    }
+
+    public boolean isConnected() {
+        return mConnected;
     }
 
     public void setUICallback(UICallback callback) {
