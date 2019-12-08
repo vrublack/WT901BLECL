@@ -40,7 +40,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.example.android.WTBLE901.data.Data;
 
@@ -57,7 +56,6 @@ import java.util.UUID;
 
 import wtzn.wtbtble901.R;
 
-import static com.example.android.WTBLE901.Utils.Norm;
 import static com.example.android.WTBLE901.Utils.join;
 
 public class BluetoothLeService extends Service {
@@ -115,6 +113,7 @@ public class BluetoothLeService extends Service {
             final String action = intent.getAction();
             if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
                 mConnected = true;
+                mData = new Data();
                 passNotification(getString(R.string.connected));
                 if (mUICallback != null)
                     mUICallback.onConnected(mDeviceName);
@@ -209,10 +208,16 @@ public class BluetoothLeService extends Service {
             sdata.append(String.format("%02x", (0xff & aPackBuffer)));
         }
 
+        String formatted;
         if (packBuffer.length == 20) {
-            mData = Data.fromBytes(packBuffer);
-            if (mRecording)
-                writeDataToFile();
+            formatted = mData.update(packBuffer);
+            if (mRecording && formatted != null) {
+                try {
+                    myFile.write(formatted);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         } else {
             mData = Data.dummyData();
         }
@@ -239,20 +244,6 @@ public class BluetoothLeService extends Service {
             cSetTimeCnt++;
         }
 
-    }
-
-    private void writeDataToFile() {
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(mData.getFormattedTime());
-        for (float val : mData.getAllSensorData())
-            sb.append(String.format(" %.3f", val));
-
-        try {
-            myFile.Write(sb.toString() + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
@@ -482,7 +473,7 @@ public class BluetoothLeService extends Service {
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                 uuid = gattCharacteristic.getUuid().toString();
-                if (uuid.toLowerCase().contains("ffe9")) {//Write
+                if (uuid.toLowerCase().contains("ffe9")) {//write
                     mNotifyCharacteristic = gattCharacteristic;
                     setCharacteristicNotification(mNotifyCharacteristic, true);
                 }
@@ -507,17 +498,17 @@ public class BluetoothLeService extends Service {
             fout = new FileOutputStream(file, false);
         }
 
-        public void Write(String str) throws IOException {
+        public void write(String str) throws IOException {
             byte[] bytes = str.getBytes();
             fout.write(bytes);
         }
 
-        public void Close() throws IOException {
+        public void close() throws IOException {
             fout.close();
             fout.flush();
         }
 
-        public void Mark() {
+        public void mark() {
             try {
                 fout.write("\r\nmark".getBytes());
             } catch (IOException e) {
@@ -543,7 +534,7 @@ public class BluetoothLeService extends Service {
 
             try {
                 myFile = new MyFile(new File(getExternalFilesDir(null), generateFname()));
-                myFile.Write("date " + join(" ", Data.getAllSensorDataNames()) + "\n");
+                myFile.write("date " + join(" ", Data.getAllSensorDataNames()) + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -552,7 +543,7 @@ public class BluetoothLeService extends Service {
 
             mRecording = false;
             try {
-                myFile.Close();
+                myFile.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

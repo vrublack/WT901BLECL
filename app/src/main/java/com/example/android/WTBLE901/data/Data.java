@@ -3,6 +3,7 @@ package com.example.android.WTBLE901.data;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 public class Data {
     private float[] acc = new float[]{0, 0, 0};  // accelerometer
@@ -20,10 +21,6 @@ public class Data {
 
 
     private String deviceName;
-
-    private Data() {
-
-    }
 
     public float[] getAcc() {
         return acc;
@@ -69,11 +66,10 @@ public class Data {
         return deviceName;
     }
 
-    public static Data fromBytes(byte[] packBuffer) {
+    public String update(byte[] packBuffer) {
 
-        // TODO this needs to be an update method because values don't arrive at once
+        time = Calendar.getInstance();
 
-        Data d = new Data();
         float[] fData = new float[9];
 
         switch (packBuffer[1]) {
@@ -82,10 +78,13 @@ public class Data {
                     fData[i] = (((short) packBuffer[i * 2 + 3]) << 8) | ((short) packBuffer[i * 2 + 2] & 0xff);
                 }
 
-                for (int i = 0; i < 3; i++) d.acc[i] = (float) (fData[i] / 32768.0 * 16.0);
-                for (int i = 3; i < 6; i++) d.gyr[i - 3] = (float) (fData[i] / 32768.0 * 2000.0);
-                for (int i = 6; i < 9; i++) d.angle[i - 6] = (float) (fData[i] / 32768.0 * 180.0);
-                break;
+                for (int i = 0; i < 3; i++) acc[i] = (float) (fData[i] / 32768.0 * 16.0);
+                for (int i = 3; i < 6; i++) gyr[i - 3] = (float) (fData[i] / 32768.0 * 2000.0);
+                for (int i = 6; i < 9; i++) angle[i - 6] = (float) (fData[i] / 32768.0 * 180.0);
+
+                return String.format(Locale.US, "acc,%s,%.4f,%.4f,%.4f\ngyr,%s,%.4f,%.4f,%.4f\nangle,%s,%.4f,%.4f,%.4f\n", getFormattedTime(),
+                        acc[0], acc[1], acc[2], getFormattedTime(), gyr[0], gyr[1], gyr[2], getFormattedTime(), angle[0], angle[1], angle[2]);
+
             case 0x71:
                 if (fData[2] != 0x68) {
                     for (int i = 0; i < 8; i++) {
@@ -95,46 +94,44 @@ public class Data {
 
                 switch (packBuffer[2]) {
                     case 0x3A:
-                        System.arraycopy(fData, 0, d.magn, 0, 3);
-                        break;
+                        System.arraycopy(fData, 0, magn, 0, 3);
+                        return String.format(Locale.US, "magn,%s,%.4f,%.4f,%.4f\n", getFormattedTime(), magn[0], magn[1], magn[2]);
                     case 0x45:
-                        d.pressure = ((((long) packBuffer[7]) << 24) & 0xff000000) | ((((long) packBuffer[6]) << 16) & 0xff0000) | ((((long) packBuffer[5]) << 8) & 0xff00) | ((((long) packBuffer[4]) & 0xff));
-                        d.altitude = (((((long) packBuffer[11]) << 24) & 0xff000000) | ((((long) packBuffer[10]) << 16) & 0xff0000) | ((((long) packBuffer[9]) << 8) & 0xff00) | ((((long) packBuffer[8]) & 0xff))) / 100.0f;
-                        break;
+                        pressure = ((((long) packBuffer[7]) << 24) & 0xff000000) | ((((long) packBuffer[6]) << 16) & 0xff0000) | ((((long) packBuffer[5]) << 8) & 0xff00) | ((((long) packBuffer[4]) & 0xff));
+                        altitude = (((((long) packBuffer[11]) << 24) & 0xff000000) | ((((long) packBuffer[10]) << 16) & 0xff0000) | ((((long) packBuffer[9]) << 8) & 0xff00) | ((((long) packBuffer[8]) & 0xff))) / 100.0f;
+                        return String.format(Locale.US, "pressure,%s,%.4f\naltitude,%s,%.4f", getFormattedTime(), pressure, getFormattedTime(), altitude);
                     case 0x41:
-                        for (int i = 0; i < 4; i++) d.port[i] = (float) (fData[i]);
-                        break;
+                        for (int i = 0; i < 4; i++) port[i] = (float) (fData[i]);
+                        return String.format(Locale.US, "port,%s,%.4f,%.4f,%.4f,%.4f\n", getFormattedTime(), port[0], port[1], port[2], port[3]);
                     case 0x51:
-                        for (int i = 0; i < 4; i++) d.quaternion[i] = (float) (fData[i] / 32768.0);
-                        break;
+                        for (int i = 0; i < 4; i++) quaternion[i] = (float) (fData[i] / 32768.0);
+                        return String.format(Locale.US, "quaternion,%s,%.4f,%.4f,%.4f,%.4f\n", getFormattedTime(), quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
                     case 0x40:
-                        d.temperature = (float) (fData[0] / 100.0);
-                        break;
+                        temperature = (float) (fData[0] / 100.0);
+                        return String.format(Locale.US, "temp,%s,%.4f\n", getFormattedTime(), temperature);
                     case 0x64:
-                        d.battery = fData[0];
-                        break;
+                        battery = fData[0];
+                        return String.format(Locale.US, "battery,%s,%.4f\n", getFormattedTime(), battery);
                     case 0x68:
                         try {
                             String s = new String(packBuffer, "ascii");
                             int end = s.indexOf("WT");
                             if (end == -1) {
-                                d.deviceName = "";
+                                deviceName = "";
                             } else {
-                                d.deviceName = s.substring(4, end);
+                                deviceName = s.substring(4, end);
                             }
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                         }
-                        break;
+                        return String.format(Locale.US, "name,%s,%s\n", getFormattedTime(), deviceName);
                 }
                 break;
             default:
                 break;
         }
 
-        d.time = Calendar.getInstance();
-
-        return d;
+        return null;
     }
 
     public static Data dummyData() {
