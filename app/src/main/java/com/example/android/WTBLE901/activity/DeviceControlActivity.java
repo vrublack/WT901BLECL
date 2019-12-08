@@ -458,40 +458,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         tvIDName = (TextView) findViewById(R.id.tv_nameId);
 
         onClick(findViewById(R.id.btnAngle));
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        // TODO what is this?
-                        if (mConnected) {
-                            handler.sendEmptyMessageAtTime(0, 5000);
-                            switch (DisplayIndex) {
-                                case 2://angle
-                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
-                                    break;
-                                case 3://Mag
-                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
-                                    break;
-                                case 4://pressure
-                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
-                                    break;
-                                case 5://port
-                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
-                                    break;
-                                case 6://Quater
-                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x51, (byte) 0x00});
-                                    break;
-                            }
-//
-                        }
-                        Thread.sleep(240);
-                    } catch (Exception err) {
-                    }
-                }
-            }
-        });
-        thread.start();
 
 
         tvID.setOnClickListener(new View.OnClickListener() {
