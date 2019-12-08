@@ -534,7 +534,6 @@ public class BluetoothLeService extends Service {
 
             try {
                 myFile = new MyFile(new File(getExternalFilesDir(null), generateFname()));
-                myFile.write("date " + join(" ", Data.getAllSensorDataNames()) + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
