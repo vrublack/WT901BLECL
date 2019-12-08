@@ -19,6 +19,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
@@ -495,21 +496,21 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     new AlertDialog.Builder(DeviceControlActivity.this)
                             .setTitle(getString(R.string.hint))
                             .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setMessage(getString(R.string.data_record) + "/mnt/sdcard/Record.txt\n" + getString(R.string.open_file))
+                            .setMessage(getString(R.string.data_record) + mService.myFile.path.toString() + "\n" + getString(R.string.open_file))
                             .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface arg0, int arg1) {
-                                    try {
-                                        File myFile = new File("/mnt/sdcard/Record.txt");
-                                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                                        intent.setData(Uri.fromFile(myFile));
-                                        startActivity(intent);
-                                    } catch (Exception err) {
-                                    }
+                                    Uri uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".fileprovider",
+                                            mService.myFile.path);
+                                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                                    intent.setData(uri);
+                                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    startActivity(intent);
                                 }
                             })
                             .setNegativeButton(getString(R.string.Cancel), null)
                             .show();
+
                 }
 
                 mService.toggleRecording();

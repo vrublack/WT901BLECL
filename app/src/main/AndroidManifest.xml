@@ -20,6 +20,17 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
+
+        <provider
+            android:name="com.example.android.WTBLE901.data.GenericFileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
+
         <activity android:name="com.example.android.WTBLE901.activity.DeviceControlActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
