@@ -1,9 +1,7 @@
 package com.example.android.WTBLE901.activity;
 
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -35,6 +33,8 @@ import android.widget.Toast;
 
 import com.example.android.WTBLE901.AngleEvent;
 import com.example.android.WTBLE901.LineChartManager;
+import com.example.android.WTBLE901.Utils;
+import com.example.android.WTBLE901.data.Data;
 import com.example.android.WTBLE901.fragment.CompassFragment;
 import com.example.android.WTBLE901.fragment.FragmentAdapter;
 import com.example.android.WTBLE901.fragment.GraphFragment;
@@ -44,16 +44,11 @@ import com.github.mikephil.charting.charts.LineChart;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import wtzn.wtbtble901.R;
 
@@ -122,8 +117,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     private TextView tvID, tvCell, tvIDName;
 
     //ffaa274100
-    private byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
-    private byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -175,7 +168,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             ((TextView) findViewById(R.id.tvTittleY)).setText("ay:");
             ((TextView) findViewById(R.id.tvTittleZ)).setText("az:");
             tvZ.setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tvTittleAll)).setText("|a|:");
+            ((TextView) findViewById(R.id.tvTittleAll)).setText("|acc|:");
             tvAll.setVisibility(View.VISIBLE);
             lineChart.clear();
             new Handler().postDelayed(new Runnable() {
@@ -204,7 +197,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             ((TextView) findViewById(R.id.tvTittleY)).setText("wy:");
             ((TextView) findViewById(R.id.tvTittleZ)).setText("wz:");
             tvZ.setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tvTittleAll)).setText("|w|:");
+            ((TextView) findViewById(R.id.tvTittleAll)).setText("|gyr|:");
             tvAll.setVisibility(View.VISIBLE);
             SetCurrentTab(v);
 
@@ -241,7 +234,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             ((TextView) findViewById(R.id.tvTittleY)).setText("hy:");
             ((TextView) findViewById(R.id.tvTittleZ)).setText("hz:");
             tvZ.setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tvTittleAll)).setText("|h|");
+            ((TextView) findViewById(R.id.tvTittleAll)).setText("|magn|");
             tvAll.setVisibility(View.VISIBLE);
             SetCurrentTab(v);
             DisplayIndex = 3;
@@ -259,8 +252,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 }
             }, 600);
 
-            ((TextView) findViewById(R.id.tvTittleX)).setText("Pressure:");
-            ((TextView) findViewById(R.id.tvTittleY)).setText("Height:");
+            ((TextView) findViewById(R.id.tvTittleX)).setText("pressure:");
+            ((TextView) findViewById(R.id.tvTittleY)).setText("altitude:");
             ((TextView) findViewById(R.id.tvTittleZ)).setText("");
             tvZ.setVisibility(View.INVISIBLE);
             ((TextView) findViewById(R.id.tvTittleAll)).setText("");
@@ -334,85 +327,9 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 .setNegativeButton(R.string.Cancel, null)
                 .show();
     }
-boolean bFirstConnect = false;
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
-                mConnected = true;
-                bFirstConnect = true;
-                invalidateOptionsMenu();
-                mBluetoothLeService.writeByes(cell);
-            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
-                mConnected = false;
-                bFirstConnect = false;
-                cSetTimeCnt = 0;
-                mBluetoothLeService.connect(mDeviceAddress);
-                invalidateOptionsMenu();
-            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
 
-
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                byte[] byteIn = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
-                CopeBLEData(byteIn);
-            }
-        }
-    };
-
-    float[] a = new float[]{0, 0, 0};
-    float[] w = new float[]{0, 0, 0};
-
-    public float[] getAngle() {
-        return Angle;
-    }
-
-    float[] Angle = new float[]{0, 0, 0};
-    float[] h = new float[]{0, 0, 0};
-    float[] Port = new float[]{0, 0, 0, 0};
-    float[] q = new float[]{0, 0, 0, 0};
-    float[] c = new float[]{0, 0, 0, 0};
-    float Pressure, Height, T;
-
-    char cSetTimeCnt = 0;
-
-    int year;
-    int month;
-    int day ;
-    int hour ;
-    int minute ;
-    int second ;
 
     public void CopeBLEData(byte[] packBuffer) {
-
-        if(bFirstConnect)
-        {
-            if(cSetTimeCnt<4)
-            {
-                switch (cSetTimeCnt)
-                {
-                    case 0:
-                        Calendar calendar = Calendar.getInstance();
-                        year = calendar.get(Calendar.YEAR);
-                        month = calendar.get(Calendar.MONTH)+1;
-                        day = calendar.get(Calendar.DATE);
-                        hour = calendar.get(Calendar.HOUR_OF_DAY);
-                        minute = calendar.get(Calendar.MINUTE);
-                        second = calendar.get(Calendar.SECOND);
-                        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x30, (byte)month, (byte) ( year-2000)});break;
-                    case 1:mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x31, (byte) hour, (byte) day});break;
-                    case 2:mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x32, (byte) second, (byte) minute});break;
-                    case 3:mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte)0x00, (byte) 0x00});break;
-                }
-                cSetTimeCnt++;
-            }
-        }
-
-        String sdata = "";
-        for (int i = 0; i < packBuffer.length; i++) {
-            sdata = sdata + String.format("%02x", (0xff & packBuffer[i]));
-        }
-        Log.e("--", "CopeBLEData = " + sdata);
         float[] fData = new float[9];
         if (packBuffer != null && packBuffer.length == 20) {
             switch (packBuffer[1]) {
@@ -495,192 +412,6 @@ boolean bFirstConnect = false;
             }
 
 
-            if (!isR) {
-                String str = "a " + String.format("%.2fg", a[0]) + "|" + String.format("%.2fg", a[1])
-                        + "|" + String.format("%.2fg", a[2]) + "|" + String.format("%.2fg", Norm(a));
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
-            if (!isR) {
-                String str = "w " + String.format("%.2f°/s", w[0]) + "|" + String.format("%.2f°/s", w[1])
-                        + "|" + String.format("%.2f°/s", w[2]) + "|" + String.format("%.2f°/s", Norm(w));
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!isR) {
-                String str = "Angle " + String.format("%.2f°", Angle[0]) + "|" + String.format("%.2f°", Angle[1])
-                        + "|" + String.format("%.2f°", Angle[2]);
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!isR) {
-                String str = "h " + String.format("%.0f", h[0]) + "|" + String.format("%.0f", h[1])
-                        + "|" + String.format("%.0f", h[2]) + "|" + String.format("%.0f", Norm(h));
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!isR) {
-                String str = "p " + String.format("%.2fPa", Pressure) + "|" + String.format("%.2fm", Height);
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!isR) {
-                String str = "Port " + String.format("%.0f", Port[0]) + "|" + String.format("%.0f", Port[1])
-                        + "|" + String.format("%.0f", Port[2]) + "|" + String.format("%.0f", Port[3]);
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!isR) {
-                String str = "Quater " + String.format("%.3f", q[0]) + "|" + String.format("%.3f", q[1])
-                        + "|" + String.format("%.3f", q[2]) + "|" + String.format("%.3f", q[3]);
-                try {
-                    myFile.Write("  \r\n");
-                    myFile.Write(str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            switch (DisplayIndex) {
-                case 0://a
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            aList.add(a[0]);
-                            aList.add(a[1]);
-                            aList.add(a[2]);
-                            lineChartManager.addEntry(aList);
-                            aList.clear();
-                            tvX.setText(String.format("%.2fg", a[0]));
-                            tvY.setText(String.format("%.2fg", a[1]));
-                            tvZ.setText(String.format("%.2fg", a[2]));
-                            tvAll.setText(String.format("%.2fg", Norm(a)));
-                        }
-                    }, 100);
-                    break;
-                case 1://w
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            wList.add(w[0]);
-                            wList.add(w[1]);
-                            wList.add(w[2]);
-                            lineChartManager.addEntry(wList);
-                            wList.clear();
-                            tvX.setText(String.format("%.2f°/s", w[0]));
-                            tvY.setText(String.format("%.2f°/s", w[1]));
-                            tvZ.setText(String.format("%.2f°/s", w[2]));
-                            tvAll.setText(String.format("%.2f°/s", Norm(w)));
-                        }
-                    }, 100);
-
-                    break;
-                case 2://Angle
-                    Bundle bundle = new Bundle();
-                    bundle.putFloat("x", Angle[0]);
-                    bundle.putFloat("y", Angle[1]);
-                    bundle.putFloat("z", Angle[2]);
-                    EventBus.getDefault().post(new AngleEvent(bundle));
-                    break;
-                case 3://h
-
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            hList.add(h[0]);
-                            hList.add(h[1]);
-                            hList.add(h[2]);
-                            lineChartManager.addEntry(hList);
-                            hList.clear();
-                            tvX.setText(String.format("%.0f", h[0]));
-                            tvY.setText(String.format("%.0f", h[1]));
-                            tvZ.setText(String.format("%.0f", h[2]));
-                            tvAll.setText(String.format("%.0f", Norm(h)));
-                        }
-                    }, 100);
-
-                    break;
-                case 4://Pressure
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            heightList.add(Height);
-                            lineChartManager.addEntry(heightList);
-                            heightList.clear();
-                            tvX.setText(String.format("%.2fPa", Pressure));
-                            tvY.setText(String.format("%.2fm", Height));
-                            Log.e("DeviceControlActivity", "Pressure=" + tvX.getText().toString() + "Heigh=" + tvY.getText().toString());
-                        }
-                    }, 100);
-
-                    break;
-                case 5://Port
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            dList.add(Port[0]);
-                            dList.add(Port[1]);
-                            dList.add(Port[2]);
-                            dList.add(Port[3]);
-                            lineChartManager.addEntry(dList);
-                            dList.clear();
-                            tvX.setText(String.format("%.0f", Port[0]));
-                            tvY.setText(String.format("%.0f", Port[1]));
-                            tvZ.setText(String.format("%.0f", Port[2]));
-                            tvAll.setText(String.format("%.0f", Port[3]));
-                        }
-                    }, 100);
-
-                    break;
-                case 6://Quater
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            qList.add(q[0]);
-                            qList.add(q[1]);
-                            qList.add(q[2]);
-                            qList.add(q[3]);
-                            lineChartManager.addEntry(qList);
-                            qList.clear();
-                            tvX.setText(String.format("%.3f", q[0]));
-                            tvY.setText(String.format("%.3f", q[1]));
-                            tvZ.setText(String.format("%.3f", q[2]));
-                            tvAll.setText(String.format("%.3f", q[3]));
-                        }
-                    }, 100);
-                    break;
-            }
 
         }
     }
@@ -702,18 +433,12 @@ boolean bFirstConnect = false;
 //
 //
 //
-//    public static byte[] concat(byte[] a, byte[] b) {
-//        byte[] c = new byte[a.length + b.length];
-//        System.arraycopy(a, 0, c, 0, a.length);
-//        System.arraycopy(b, 0, c, a.length, b.length);
-//        return c;
+//    public static byte[] concat(byte[] acc, byte[] b) {
+//        byte[] whatIsThis = new byte[acc.length + b.length];
+//        System.arraycopy(acc, 0, whatIsThis, 0, acc.length);
+//        System.arraycopy(b, 0, whatIsThis, acc.length, b.length);
+//        return whatIsThis;
 //    }
-
-    private float Norm(float[] x) {
-        float fSum = 0;
-        for (int i = 0; i < x.length; i++) fSum += x[i] * x[i];
-        return (float) Math.sqrt(fSum);
-    }
 
     public void onClickAccCali(View view) {
         mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
@@ -838,16 +563,16 @@ boolean bFirstConnect = false;
                         if (mConnected) {
                             handler.sendEmptyMessageAtTime(0, 5000);
                             switch (DisplayIndex) {
-                                case 2://Angle
+                                case 2://angle
                                     mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
                                     break;
                                 case 3://Mag
                                     mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
                                     break;
-                                case 4://Pressure
+                                case 4://pressure
                                     mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
                                     break;
-                                case 5://Port
+                                case 5://port
                                     mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
                                     break;
                                 case 6://Quater
@@ -893,31 +618,10 @@ boolean bFirstConnect = false;
         tvRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (isR) {
+                if (!mBluetoothLeService.isRecording()) {
                     tvRecord.setText(getString(R.string.menu_stop));
-                    isR = false;
-
-                    try {
-                        myFile = new MyFile("/mnt/sdcard/Record.txt");
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy年MM月dd日 HH:mm:ss ");
-                    Date curDate = new Date(System.currentTimeMillis());//获取当前时间
-                    String s = getString(R.string.start_time) + formatter.format(curDate) + "\r\n";
-                    try {
-                        myFile.Write(s + "\r\n");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 } else {
                     tvRecord.setText(getString(R.string.Record));
-                    isR = true;
-                    try {
-                        myFile.Close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                     new AlertDialog.Builder(DeviceControlActivity.this)
                             .setTitle(getString(R.string.hint))
                             .setIcon(android.R.drawable.ic_dialog_alert)
@@ -937,10 +641,10 @@ boolean bFirstConnect = false;
                             .setNegativeButton(getString(R.string.Cancel), null)
                             .show();
                 }
+
+                mBluetoothLeService.toggleRecording();
             }
         });
-
-
     }
 
 
@@ -961,25 +665,131 @@ boolean bFirstConnect = false;
     };
 
 
-    MyFile myFile;
+    private BluetoothLeService.UICallback callback = new BluetoothLeService.UICallback() {
+        @Override
+        public void handleBLEData(final Data data) {
+            switch (DisplayIndex) {
+                case 0://acc
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            aList.add(data.getAcc()[0]);
+                            aList.add(data.getAcc()[1]);
+                            aList.add(data.getAcc()[2]);
+                            lineChartManager.addEntry(aList);
+                            aList.clear();
+                            tvX.setText(String.format("%.2fg", data.getAcc()[0]));
+                            tvY.setText(String.format("%.2fg", data.getAcc()[1]));
+                            tvZ.setText(String.format("%.2fg", data.getAcc()[2]));
+                            tvAll.setText(String.format("%.2fg", Utils.Norm(data.getAcc())));
+                        }
+                    }, 100);
+                    break;
+                case 1://gyr
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            wList.add(data.getGyr()[0]);
+                            wList.add(data.getGyr()[1]);
+                            wList.add(data.getGyr()[2]);
+                            lineChartManager.addEntry(wList);
+                            wList.clear();
+                            tvX.setText(String.format("%.2f°/s", data.getGyr()[0]));
+                            tvY.setText(String.format("%.2f°/s", data.getGyr()[1]));
+                            tvZ.setText(String.format("%.2f°/s", data.getGyr()[2]));
+                            tvAll.setText(String.format("%.2f°/s", Utils.Norm(data.getGyr())));
+                        }
+                    }, 100);
 
-    class MyFile {
-        FileOutputStream fout;
+                    break;
+                case 2://angle
+                    Bundle bundle = new Bundle();
+                    bundle.putFloat("x", data.getAngle()[0]);
+                    bundle.putFloat("y", data.getAngle()[1]);
+                    bundle.putFloat("z", data.getAngle()[2]);
+                    EventBus.getDefault().post(new AngleEvent(bundle));
+                    break;
+                case 3://magn
 
-        public MyFile(String fileName) throws FileNotFoundException {
-            fout = new FileOutputStream(fileName, false);
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            hList.add(data.getMagn()[0]);
+                            hList.add(data.getMagn()[1]);
+                            hList.add(data.getMagn()[2]);
+                            lineChartManager.addEntry(hList);
+                            hList.clear();
+                            tvX.setText(String.format("%.0f", data.getMagn()[0]));
+                            tvY.setText(String.format("%.0f", data.getMagn()[1]));
+                            tvZ.setText(String.format("%.0f", data.getMagn()[2]));
+                            tvAll.setText(String.format("%.0f", Utils.Norm(data.getMagn())));
+                        }
+                    }, 100);
+
+                    break;
+                case 4://pressure
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            heightList.add(data.getAltitude());
+                            lineChartManager.addEntry(heightList);
+                            heightList.clear();
+                            tvX.setText(String.format("%.2fPa", data.getPressure()));
+                            tvY.setText(String.format("%.2fm", data.getAltitude()));
+                            Log.e("DeviceControlActivity", "pressure=" + tvX.getText().toString() + "Heigh=" + tvY.getText().toString());
+                        }
+                    }, 100);
+
+                    break;
+                case 5://port
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            dList.add(data.getPort()[0]);
+                            dList.add(data.getPort()[1]);
+                            dList.add(data.getPort()[2]);
+                            dList.add(data.getPort()[3]);
+                            lineChartManager.addEntry(dList);
+                            dList.clear();
+                            tvX.setText(String.format("%.0f", data.getPort()[0]));
+                            tvY.setText(String.format("%.0f", data.getPort()[1]));
+                            tvZ.setText(String.format("%.0f", data.getPort()[2]));
+                            tvAll.setText(String.format("%.0f", data.getPort()[3]));
+                        }
+                    }, 100);
+
+                    break;
+                case 6://Quater
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            qList.add(data.getQuaternion()[0]);
+                            qList.add(data.getQuaternion()[1]);
+                            qList.add(data.getQuaternion()[2]);
+                            qList.add(data.getQuaternion()[3]);
+                            lineChartManager.addEntry(qList);
+                            qList.clear();
+                            tvX.setText(String.format("%.3f", data.getQuaternion()[0]));
+                            tvY.setText(String.format("%.3f", data.getQuaternion()[1]));
+                            tvZ.setText(String.format("%.3f", data.getQuaternion()[2]));
+                            tvAll.setText(String.format("%.3f", data.getQuaternion()[3]));
+                        }
+                    }, 100);
+                    break;
+            }
         }
 
-        public void Write(String str) throws IOException {
-            byte[] bytes = str.getBytes();
-            fout.write(bytes);
+        @Override
+        public void onConnected(String deviceName) {
+            invalidateOptionsMenu();
         }
 
-        public void Close() throws IOException {
-            fout.close();
-            fout.flush();
+        @Override
+        public void onDisconnected() {
+            invalidateOptionsMenu();
         }
-    }
+    };
+
 
     private void initDraw() {
         draw = (DrawerLayout) findViewById(R.id.drawerLayout);
@@ -1174,7 +984,7 @@ boolean bFirstConnect = false;
         hColour.add(Color.BLUE);
 
         heightColour.add(Color.RED);
-        heightNames.add("Height");
+        heightNames.add("altitude");
 
         dNames.add("D0");
         dNames.add("D1");

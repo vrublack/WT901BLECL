@@ -16,6 +16,7 @@
 
 package com.example.android.WTBLE901.activity;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -26,24 +27,33 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.example.android.WTBLE901.data.Data;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import wtzn.wtbtble901.R;
+
+import static com.example.android.WTBLE901.Utils.Norm;
+import static com.example.android.WTBLE901.Utils.join;
+
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
-
-    private BluetoothManager mBluetoothManager;
-    private BluetoothAdapter mBluetoothAdapter;
-    private String mBluetoothDeviceAddress;
-    private BluetoothGatt mBluetoothGatt;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private int mConnectionState = STATE_DISCONNECTED;
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -59,6 +69,58 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
+
+    private BluetoothManager mBluetoothManager;
+    private BluetoothAdapter mBluetoothAdapter;
+    private String mBluetoothDeviceAddress;
+    private BluetoothGatt mBluetoothGatt;
+    private BluetoothGattCharacteristic mNotifyCharacteristic;
+    private int mConnectionState = STATE_DISCONNECTED;
+    private String mDeviceName;
+    private String mDeviceAddress;
+    private boolean mRecording;
+    private boolean mConnected;
+    private boolean bFirstConnect;
+    
+    private byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
+    private byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
+
+    private Data mData;
+    private char cSetTimeCnt = 0;
+
+    private UICallback mUICallback;
+
+
+    public interface UICallback {
+        void handleBLEData(Data data);
+        void onConnected(String deviceName);
+        void onDisconnected();
+    }
+
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
+                mConnected = true;
+                bFirstConnect = true;
+                if (mUICallback != null)
+                    mUICallback.onConnected(mDeviceName);
+                writeByes(cell);
+            } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
+                mConnected = false;
+                bFirstConnect = false;
+                connect(mDeviceAddress);
+                if (mUICallback != null)
+                    mUICallback.onDisconnected();
+            } else if (ACTION_DATA_AVAILABLE.equals(action)) {
+                byte[] byteIn = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
+                handleBLEData(byteIn);
+                if (mUICallback != null)
+                    mUICallback.handleBLEData(mData);
+            }
+        }
+    };
 
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -128,6 +190,63 @@ public class BluetoothLeService extends Service {
         }
     };
 
+    @SuppressLint("DefaultLocale")
+    public void handleBLEData(byte[] packBuffer) {
+        StringBuilder sdata = new StringBuilder();
+        for (byte aPackBuffer : packBuffer) {
+            sdata.append(String.format("%02x", (0xff & aPackBuffer)));
+        }
+
+        Log.e("--", "handleBLEData = " + sdata);
+
+        if (packBuffer.length == 20) {
+            mData = Data.fromBytes(packBuffer);
+            if (mRecording)
+                writeDataToFile();
+        } else {
+            mData = Data.dummyData();
+        }
+
+        if(bFirstConnect)
+            updateTime();
+    }
+
+    public void updateTime() {
+        if (cSetTimeCnt < 4) {
+            switch (cSetTimeCnt) {
+                case 0:
+                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x30, (byte) mData.getTime().get(Calendar.MONTH), (byte) (mData.getTime().get(Calendar.YEAR) - 2000)});
+                    break;
+                case 1:
+                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x31, (byte) mData.getTime().get(Calendar.HOUR_OF_DAY), (byte) mData.getTime().get(Calendar.DAY_OF_MONTH)});
+                    break;
+                case 2:
+                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x32, (byte) mData.getTime().get(Calendar.SECOND), (byte) mData.getTime().get(Calendar.MINUTE)});
+                    break;
+                case 3:
+                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                    break;
+            }
+            cSetTimeCnt++;
+        }
+
+    }
+
+    private void writeDataToFile() {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(mData.getFormattedTime());
+        for (float val : mData.getAllSensorData())
+            sb.append(String.format(" %.3f", val));
+
+        try {
+            myFile.Write(sb.toString() + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
         sendBroadcast(intent);
@@ -187,7 +306,7 @@ public class BluetoothLeService extends Service {
 
         mBluetoothAdapter = mBluetoothManager.getAdapter();
         if (mBluetoothAdapter == null) {
-//            Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
+//            Log.e(TAG, "Unable to obtain acc BluetoothAdapter.");
             return false;
         }
         return true;
@@ -216,7 +335,7 @@ public class BluetoothLeService extends Service {
             return false;
         }
         mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
-        Log.d(TAG, "Trying to create a new connection.");
+        Log.d(TAG, "Trying to create acc new connection.");
         mBluetoothDeviceAddress = address;
         mConnectionState = STATE_CONNECTING;
         return true;
@@ -309,5 +428,67 @@ public class BluetoothLeService extends Service {
         }
     }
 
+    MyFile myFile;
 
+    class MyFile {
+        FileOutputStream fout;
+        File path;
+
+        public MyFile(File file) throws FileNotFoundException {
+            this.path = file;
+            fout = new FileOutputStream(file, false);
+        }
+
+        public void Write(String str) throws IOException {
+            byte[] bytes = str.getBytes();
+            fout.write(bytes);
+        }
+
+        public void Close() throws IOException {
+            fout.close();
+            fout.flush();
+        }
+
+        public void Mark() {
+            try {
+                fout.write("\r\nmark".getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String generateFname() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss");
+        Date date = new Date();
+        return "Recording__" + dateFormat.format(new Date()) + ".txt";
+    }
+
+    public void toggleRecording() {
+        if (!mRecording) {
+            mRecording = true;
+
+            try {
+                myFile = new MyFile(new File(getExternalFilesDir(null), generateFname()));
+                myFile.Write("date " + join(" ", Data.getAllSensorDataNames()) + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            mRecording = false;
+            try {
+                myFile.Close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean isRecording() {
+        return mRecording;
+    }
+
+    public void setUICallback(UICallback callback) {
+        mUICallback = callback;
+    }
 }

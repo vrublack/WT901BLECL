@@ -119,7 +119,7 @@ public class DeviceScanActivity extends ListActivity {
             finish();
         }
 
-        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
+        // Initializes acc Bluetooth adapter.  For API level 18 and above, get acc reference to
         // BluetoothAdapter through BluetoothManager.
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -186,7 +186,7 @@ public class DeviceScanActivity extends ListActivity {
         }
         Log.e("--", "onResume");
         // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
+        // fire an intent to display acc dialog asking the user to grant permission to enable it.
         if (!mBluetoothAdapter.isEnabled()) {
             if (!mBluetoothAdapter.isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -233,7 +233,7 @@ public class DeviceScanActivity extends ListActivity {
 
     private void scanLeDevice(final boolean enable) {
         if (enable) {
-            // Stops scanning after a pre-defined scan period.
+            // Stops scanning after acc pre-defined scan period.
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
