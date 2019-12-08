@@ -102,6 +102,7 @@ public class DeviceScanActivity extends ListActivity {
                     scanLeDevice(false);
                 } else {
                     mLeDeviceListAdapter.clear();
+                    mLeDeviceListAdapter.notifyDataSetChanged();
                     scanLeDevice(true);
                 }
             }
@@ -173,6 +174,7 @@ public class DeviceScanActivity extends ListActivity {
         super.onPause();
         scanLeDevice(false);
         mLeDeviceListAdapter.clear();
+        mLeDeviceListAdapter.notifyDataSetChanged();
     }
 
     @Override
