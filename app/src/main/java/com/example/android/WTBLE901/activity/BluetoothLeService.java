@@ -402,7 +402,7 @@ public class BluetoothLeService extends Service {
             notificationManager.createNotificationChannel(channel);
         }
 
-        startForeground(NOTIFICATION_ID, getNotification(""));
+        startForeground(NOTIFICATION_ID, getNotification(getString(R.string.not_connected)));
 
         return START_NOT_STICKY;
     }

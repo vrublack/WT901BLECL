@@ -65,4 +65,5 @@
     <string name="recording">Recording</string>
     <string name="not_recording">Not recording</string>
     <string name="disconnect">Disconnect</string>
+    <string name="not_connected">Not connected</string>
 </resources>
