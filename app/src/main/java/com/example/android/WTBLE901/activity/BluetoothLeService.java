@@ -209,8 +209,6 @@ public class BluetoothLeService extends Service {
             sdata.append(String.format("%02x", (0xff & aPackBuffer)));
         }
 
-        Log.e("--", "handleBLEData = " + sdata);
-
         if (packBuffer.length == 20) {
             mData = Data.fromBytes(packBuffer);
             if (mRecording)
@@ -310,12 +308,6 @@ public class BluetoothLeService extends Service {
     }
 
     @Override
-    public boolean onUnbind(Intent intent) {
-        close();
-        return super.onUnbind(intent);
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         disconnect();
@@ -381,6 +373,8 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.disconnect();
+        mBluetoothGatt.close();
+        mBluetoothGatt = null;
     }
 
     @Override
@@ -429,15 +423,6 @@ public class BluetoothLeService extends Service {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID);
-    }
-
-
-    public void close() {
-        if (mBluetoothGatt == null) {
-            return;
-        }
-        mBluetoothGatt.close();
-        mBluetoothGatt = null;
     }
 
     public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
