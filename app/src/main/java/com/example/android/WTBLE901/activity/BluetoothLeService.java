@@ -17,6 +17,10 @@
 package com.example.android.WTBLE901.activity;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -30,9 +34,13 @@ import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.android.WTBLE901.data.Data;
 
@@ -55,6 +63,9 @@ import static com.example.android.WTBLE901.Utils.join;
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
+    public static final String CHANNEL_ID = "SensorServiceChannel";
+    private static final int NOTIFICATION_ID = 1;
+
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
@@ -70,6 +81,8 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
 
+    public static boolean isRunning = false;
+
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
@@ -80,10 +93,9 @@ public class BluetoothLeService extends Service {
     private String mDeviceAddress;
     private boolean mRecording;
     private boolean mConnected;
-    private boolean bFirstConnect;
-    
-    private byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
-    private byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
+
+    public static byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
+    public static byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
 
     private Data mData;
     private char cSetTimeCnt = 0;
@@ -103,13 +115,13 @@ public class BluetoothLeService extends Service {
             final String action = intent.getAction();
             if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
                 mConnected = true;
-                bFirstConnect = true;
+                passNotification(getString(R.string.connected));
                 if (mUICallback != null)
                     mUICallback.onConnected(mDeviceName);
                 writeByes(cell);
             } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
                 mConnected = false;
-                bFirstConnect = false;
+                passNotification(getString(R.string.disconnected));
                 connect(mDeviceAddress);
                 if (mUICallback != null)
                     mUICallback.onDisconnected();
@@ -207,8 +219,7 @@ public class BluetoothLeService extends Service {
             mData = Data.dummyData();
         }
 
-        if(bFirstConnect)
-            updateTime();
+        updateTime();
     }
 
     public void updateTime() {
@@ -276,6 +287,17 @@ public class BluetoothLeService extends Service {
         sendBroadcast(intent);
     }
 
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
+
+
     public class LocalBinder extends Binder {
         BluetoothLeService getService() {
             return BluetoothLeService.this;
@@ -293,22 +315,33 @@ public class BluetoothLeService extends Service {
         return super.onUnbind(intent);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        disconnect();
+        removeNotification();
+        unregisterReceiver(mGattUpdateReceiver);
+    }
+
     private final IBinder mBinder = new LocalBinder();
 
-    public boolean initialize() {
+    private boolean initialize() {
         if (mBluetoothManager == null) {
             mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
             if (mBluetoothManager == null) {
-//                Log.e(TAG, "Unable to initialize BluetoothManager.");
+                Log.e(TAG, "Unable to initialize BluetoothManager.");
                 return false;
             }
         }
 
         mBluetoothAdapter = mBluetoothManager.getAdapter();
         if (mBluetoothAdapter == null) {
-//            Log.e(TAG, "Unable to obtain acc BluetoothAdapter.");
+            Log.e(TAG, "Unable to obtain acc BluetoothAdapter.");
             return false;
         }
+
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+
         return true;
     }
 
@@ -348,6 +381,55 @@ public class BluetoothLeService extends Service {
         }
         mBluetoothGatt.disconnect();
     }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        isRunning = true;
+
+        // TODO abort when failed
+        initialize();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.sensor_status_channel);
+            String description = getString(R.string.sensor_status_channel);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        startForeground(NOTIFICATION_ID, getNotification(""));
+
+        return START_NOT_STICKY;
+    }
+
+    private Notification getNotification(String msg) {
+        Intent notificationIntent = new Intent(this, DeviceControlActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(msg)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentIntent(pendingIntent).build();
+    }
+
+    private void passNotification(String msg) {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, getNotification(msg));
+    }
+
+    private void removeNotification() {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
+        notificationManager.cancel(NOTIFICATION_ID);
+    }
+
 
     public void close() {
         if (mBluetoothGatt == null) {
@@ -465,8 +547,13 @@ public class BluetoothLeService extends Service {
     }
 
     public void toggleRecording() {
+        if (!mConnected)
+            return;
+
         if (!mRecording) {
             mRecording = true;
+
+            passNotification(getString(R.string.recording));
 
             try {
                 myFile = new MyFile(new File(getExternalFilesDir(null), generateFname()));
@@ -475,6 +562,8 @@ public class BluetoothLeService extends Service {
                 e.printStackTrace();
             }
         } else {
+            passNotification(getString(R.string.not_recording));
+
             mRecording = false;
             try {
                 myFile.Close();

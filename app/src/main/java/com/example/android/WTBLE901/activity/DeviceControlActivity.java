@@ -1,11 +1,13 @@
 package com.example.android.WTBLE901.activity;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -13,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -44,10 +47,7 @@ import com.github.mikephil.charting.charts.LineChart;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import wtzn.wtbtble901.R;
@@ -59,9 +59,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
-    private String mDeviceName;
-    private String mDeviceAddress;
-    private BluetoothLeService mBluetoothLeService;
+    private String mToConnectTo;
+    private BluetoothLeService mService;
     private Button btnAcc, btnGyro, btnAngle, btnMag, btnPressure, btnPort, btnQuater;
     private TextView tvX, tvY, tvZ, tvAll;
     private boolean mConnected = false;
@@ -103,47 +102,41 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
     private List<Fragment> listFragment = new ArrayList<>();
 
-    private GraphFragment graphFragment;
-
     private boolean bMagCali = false;
     private boolean myAcli = false;
 
     private DrawerLayout draw;
 
-    private boolean isR = true;
-
     private TextView tvRecord;
 
     private TextView tvID, tvCell, tvIDName;
 
-    //ffaa274100
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
-            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            mService = ((BluetoothLeService.LocalBinder) service).getService();
 
-
-            if (!mBluetoothLeService.initialize()) {
-                finish();
+            if (mToConnectTo != null) {
+                mService.connect(mToConnectTo);
+                mToConnectTo = null;
             }
-            mBluetoothLeService.connect(mDeviceAddress);
+
+            mService.setUICallback(mCallback);
+
+            Log.d(DeviceControlActivity.class.getCanonicalName(), "onServiceConnected");
+
+            // update UI now
+            if (mService.isRecording()) {
+                tvRecord.setText(R.string.menu_stop);
+            }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            mBluetoothLeService = null;
+            mService = null;
         }
     };
-
-    private static IntentFilter makeGattUpdateIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        return intentFilter;
-    }
 
     int DisplayIndex = 0;
 
@@ -321,100 +314,13 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface arg0, int arg1) {
-                        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
+                        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
                     }
                 })
                 .setNegativeButton(R.string.Cancel, null)
                 .show();
     }
 
-
-    public void CopeBLEData(byte[] packBuffer) {
-        float[] fData = new float[9];
-        if (packBuffer != null && packBuffer.length == 20) {
-            switch (packBuffer[1]) {
-                case 0x61:
-                    for (int i = 0; i < 9; i++) {
-                        fData[i] = (((short) packBuffer[i * 2 + 3]) << 8) | ((short) packBuffer[i * 2 + 2] & 0xff);
-                    }
-
-                    for (int i = 0; i < 3; i++) a[i] = (float) (fData[i] / 32768.0 * 16.0);
-                    for (int i = 3; i < 6; i++) w[i - 3] = (float) (fData[i] / 32768.0 * 2000.0);
-                    for (int i = 6; i < 9; i++) Angle[i - 6] = (float) (fData[i] / 32768.0 * 180.0);
-                    break;
-                case 0x71:
-                    if (fData[2] != 0x68) {
-                        for (int i = 0; i < 8; i++) {
-                            fData[i] = (((short) packBuffer[i * 2 + 5]) << 8) | ((short) packBuffer[i * 2 + 4] & 0xff);
-                        }
-                    }
-
-                    switch (packBuffer[2]) {
-                        case 0x3A:
-                            for (int i = 0; i < 3; i++) h[i] = fData[i];
-                            break;
-                        case 0x45:
-                            Pressure = ((((long) packBuffer[7]) << 24) & 0xff000000) | ((((long) packBuffer[6]) << 16) & 0xff0000) | ((((long) packBuffer[5]) << 8) & 0xff00) | ((((long) packBuffer[4]) & 0xff));
-                            Height = (((((long) packBuffer[11]) << 24) & 0xff000000) | ((((long) packBuffer[10]) << 16) & 0xff0000) | ((((long) packBuffer[9]) << 8) & 0xff00) | ((((long) packBuffer[8]) & 0xff))) / 100.0f;
-                            break;
-                        case 0x41:
-                            for (int i = 0; i < 4; i++) Port[i] = (float) (fData[i]);
-                            break;
-                        case 0x51:
-                            for (int i = 0; i < 4; i++) q[i] = (float) (fData[i] / 32768.0);
-                            break;
-                        case 0x40:
-                            T = (float) (fData[0] / 100.0);
-                            break;
-                        case 0x64://电量
-                            for (int i = 0; i < 4; i++) {
-                                c[i] = (float) (fData[i]);
-                            }
-                            if (fData[0] < 680) {
-                                tvCell.setBackground(getResources().getDrawable(R.drawable.cell1));
-                            }
-                            if (fData[0] >= 680 && fData[0] < 735) {
-                                tvCell.setBackground(getResources().getDrawable(R.drawable.cell2));
-                            }
-
-                            if (fData[0] >= 745 && fData[0] < 775) {
-                                tvCell.setBackground(getResources().getDrawable(R.drawable.cell3));
-                            }
-
-                            if (fData[0] >= 775 && fData[0] < 850) {
-                                tvCell.setBackground(getResources().getDrawable(R.drawable.cell4));
-                            }
-
-                            if (fData[0] >= 850) {
-                                tvCell.setBackground(getResources().getDrawable(R.drawable.cell5));
-                            }
-                            break;
-                        case 0x68:
-                            try {
-                                String s = new String(packBuffer, "ascii");
-                                int end = s.indexOf("WT");
-                                if (end == -1) {
-                                    tvIDName.setVisibility(View.INVISIBLE);
-                                    tvID.setVisibility(View.INVISIBLE);
-                                    return;
-                                } else {
-                                    s = s.substring(4, end);
-                                    tvID.setText(s);
-                                }
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
-
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-
-
-        }
-    }
 
 //
 //    public static byte[] FloatArrayToByteArray(float[] data) {
@@ -441,37 +347,37 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 //    }
 
     public void onClickAccCali(View view) {
-        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
+        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
     }
 
     public void onClickAccCaliL(View view) {
-        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
+        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
     }
 
     public void onClickAccCaliR(View view) {
-        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
+        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
     }
 
     public void onClickReset(View view) {
-        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
+        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
     }
 
 
 //    public void onClickMagCali(View view) {
 //        Button btnMagCali = ((Button) findViewById(R.id.btnMagCali));
 //        if (bMagCali == false) {
-//            mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
+//            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
 //            btnMagCali.setText(R.string.Finish);
 //            bMagCali = true;
 //        } else {
-//            mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
+//            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
 //            btnMagCali.setText(R.string.MagCali);
 //            bMagCali = false;
 //        }
 //    }
 
 //    public void onClickSave(View view) {
-//        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+//        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
 //    }
 
     int iPortMode = 0;
@@ -491,7 +397,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface arg0, int arg1) {
-                        mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) (0x0E + iPortIndex), (byte) iPortMode, (byte) 0x00});
+                        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) (0x0E + iPortIndex), (byte) iPortMode, (byte) 0x00});
                     }
                 })
                 .setNegativeButton(R.string.Cancel, null)
@@ -512,8 +418,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         setContentView(R.layout.gatt_services_characteristics);
         initDraw();
         final Intent intent = getIntent();
-        mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
-        mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
+        String mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
+        mToConnectTo = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
         // viewpager  linearlayout
         mViewPager = (ViewPager) findViewById(R.id.mViewPager);
         mLayout = (LinearLayout) findViewById(R.id.mLayout);
@@ -564,19 +470,19 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                             handler.sendEmptyMessageAtTime(0, 5000);
                             switch (DisplayIndex) {
                                 case 2://angle
-                                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
                                     break;
                                 case 3://Mag
-                                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
                                     break;
                                 case 4://pressure
-                                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
                                     break;
                                 case 5://port
-                                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
                                     break;
                                 case 6://Quater
-                                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x51, (byte) 0x00});
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x51, (byte) 0x00});
                                     break;
                             }
 //
@@ -601,8 +507,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                         byte l = (byte) (id & 0xff);
                         byte h = (byte) (id << 8 & 0xff);
                         byte[] bb = new byte[]{(byte) 0xff, (byte) 0xaa, 0x69, l, h};
-                        mBluetoothLeService.writeByes(bb);
-                        mBluetoothLeService.writeByes(mDeviceID);
+                        mService.writeByes(bb);
+                        mService.writeByes(BluetoothLeService.mDeviceID);
                     }
 
                     @Override
@@ -618,7 +524,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         tvRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!mBluetoothLeService.isRecording()) {
+                if (!mService.isRecording()) {
                     tvRecord.setText(getString(R.string.menu_stop));
                 } else {
                     tvRecord.setText(getString(R.string.Record));
@@ -642,7 +548,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                             .show();
                 }
 
-                mBluetoothLeService.toggleRecording();
+                mService.toggleRecording();
             }
         });
     }
@@ -655,8 +561,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             if (msg.what == 0) {
                 if (mConnected) {
                   //  try {
-                        mBluetoothLeService.writeByes(mDeviceID);
-                        mBluetoothLeService.writeByes(cell);
+                        mService.writeByes(BluetoothLeService.mDeviceID);
+                        mService.writeByes(BluetoothLeService.cell);
                  //   }
                   //  catch (Exception err){}
                 }
@@ -665,7 +571,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     };
 
 
-    private BluetoothLeService.UICallback callback = new BluetoothLeService.UICallback() {
+    private BluetoothLeService.UICallback mCallback = new BluetoothLeService.UICallback() {
         @Override
         public void handleBLEData(final Data data) {
             switch (DisplayIndex) {
@@ -777,6 +683,34 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     }, 100);
                     break;
             }
+
+            if (data.getBattery() < 680) {
+                tvCell.setBackground(getResources().getDrawable(R.drawable.cell1));
+            }
+            if (data.getBattery() >= 680 && data.getBattery() < 735) {
+                tvCell.setBackground(getResources().getDrawable(R.drawable.cell2));
+            }
+
+            if (data.getBattery() >= 745 && data.getBattery() < 775) {
+                tvCell.setBackground(getResources().getDrawable(R.drawable.cell3));
+            }
+
+            if (data.getBattery() >= 775 && data.getBattery() < 850) {
+                tvCell.setBackground(getResources().getDrawable(R.drawable.cell4));
+            }
+
+            if (data.getBattery() >= 850) {
+                tvCell.setBackground(getResources().getDrawable(R.drawable.cell5));
+            }
+
+            if (data.getDeviceName() != null) {
+                if (data.getDeviceName().length() == 0) {
+                    tvIDName.setVisibility(View.INVISIBLE);
+                    tvID.setVisibility(View.INVISIBLE);
+                } else {
+                    tvID.setText(data.getDeviceName());
+                }
+            }
         }
 
         @Override
@@ -810,17 +744,17 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             @Override
             public void onClick(View view) {
                 if (myAcli == false) {
-                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
                     acli.setText(R.string.Finish);
                     myAcli = true;
                 } else {
-                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
                     acli.setText(R.string.AccCali);
                     myAcli = false;
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
                         }
                     }, 20);
                 }
@@ -830,14 +764,14 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         acli_l.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
             }
         });
         //加计校准R
         acli_r.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
             }
         });
 
@@ -846,17 +780,17 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             @Override
             public void onClick(View view) {
                 if (bMagCali == false) {
-                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
                     magacli.setText(R.string.Finish);
                     bMagCali = true;
                 } else {
-                    mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
                     magacli.setText(R.string.MagCali);
                     bMagCali = false;
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
                             draw.closeDrawer(Gravity.LEFT);
                         }
                     }, 100);
@@ -912,7 +846,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         resume.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBluetoothLeService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
             }
         });
         rename.setOnClickListener(new View.OnClickListener() {
@@ -932,7 +866,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                                 if (value != null && !value.equals("")) {
                                     String name = "WTWT" + value + "\r\n";
                                     Log.e("------", "WT====" + name);
-                                    mBluetoothLeService.writeByes(name.getBytes());
+                                    mService.writeByes(name.getBytes());
                                     Toast.makeText(DeviceControlActivity.this, R.string.Reset, Toast.LENGTH_SHORT).show();
                                 } else {
                                     Toast.makeText(DeviceControlActivity.this, R.string.EnterName, Toast.LENGTH_SHORT).show();
@@ -1007,26 +941,63 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
     }
 
+    @Nullable
+    private String getDefaultDevice() {
+        return getSharedPreferences("Device", Activity.MODE_PRIVATE).getString("defaultDevice", null);
+    }
+
+    private void setDefaultDevice(String address) {
+        SharedPreferences mySharedPreferences = getSharedPreferences("Device", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = mySharedPreferences.edit();
+        editor.putString("defaultDevice", address);
+        editor.commit();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-        if (mBluetoothLeService != null) {
-            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+
+        if (!BluetoothLeService.isRunning) {
+            mToConnectTo = getDefaultDevice();
+            startSensorService();
+        }
+
+        // maybe the service was running in the background but the activity was destroyed
+        bindService(new Intent(this, BluetoothLeService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    private void startSensorService() {
+        Log.d(TAG, "Starting service");
+        Intent serviceIntent = new Intent(this, BluetoothLeService.class);
+        if (Build.VERSION.SDK_INT >= 26) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mGattUpdateReceiver);
+
+        Log.d(DeviceControlActivity.class.getCanonicalName(), "onStop");
+        if (mService != null) {
+            mService.setUICallback(null);
+            if (!mService.isRecording()) {
+                // shut service down if not recording because we don't need it
+                stopService(new Intent(this, BluetoothLeService.class));
+            }
+            unbindService(mServiceConnection);
+            mService = null;
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unbindService(mServiceConnection);
-        mBluetoothLeService = null;
+        mService = null;
     }
 
     @Override
@@ -1050,10 +1021,10 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
             return true;
         } else if (i == R.id.menu_disconnect) {
-            mBluetoothLeService.disconnect();
-            if (mBluetoothLeService != null) {
+            mService.disconnect();
+            if (mService != null) {
                 unbindService(mServiceConnection);
-                mBluetoothLeService = null;
+                mService = null;
             }
             return true;
         } else if (i == android.R.id.home) {

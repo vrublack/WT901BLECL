@@ -1,10 +1,8 @@
 package com.example.android.WTBLE901.data;
 
-import com.example.android.WTBLE901.activity.BluetoothLeService;
-
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 public class Data {
     private float[] acc = new float[]{0, 0, 0};  // accelerometer
@@ -13,12 +11,15 @@ public class Data {
     private float[] magn = new float[]{0, 0, 0};  // magnetic field
     private float[] port = new float[]{0, 0, 0, 0};
     private float[] quaternion = new float[]{0, 0, 0, 0};
-    private float[] whatIsThis = new float[]{0, 0, 0, 0};
+    private float battery;
     private float pressure;
     private float altitude;
     private float temperature;
 
     private Calendar time;
+
+
+    private String deviceName;
 
     private Data() {
 
@@ -48,8 +49,8 @@ public class Data {
         return quaternion;
     }
 
-    public float[] getWhatIsThis() {
-        return whatIsThis;
+    public float getBattery() {
+        return battery;
     }
 
     public float getPressure() {
@@ -64,7 +65,14 @@ public class Data {
         return temperature;
     }
 
+    public String getDeviceName() {
+        return deviceName;
+    }
+
     public static Data fromBytes(byte[] packBuffer) {
+
+        // TODO this needs to be an update method because values don't arrive at once
+
         Data d = new Data();
         float[] fData = new float[9];
 
@@ -103,8 +111,19 @@ public class Data {
                         d.temperature = (float) (fData[0] / 100.0);
                         break;
                     case 0x64:
-                        for (int i = 0; i < 4; i++) {
-                            d.whatIsThis[i] = (float) (fData[i]);
+                        d.battery = fData[0];
+                        break;
+                    case 0x68:
+                        try {
+                            String s = new String(packBuffer, "ascii");
+                            int end = s.indexOf("WT");
+                            if (end == -1) {
+                                d.deviceName = "";
+                            } else {
+                                d.deviceName = s.substring(4, end);
+                            }
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
                         }
                         break;
                 }
@@ -124,7 +143,7 @@ public class Data {
 
     public float[] getAllSensorData() {
         return new float[]{acc[0], acc[1], acc[2], gyr[0], gyr[1], gyr[2], angle[0], angle[1], angle[2], magn[0], magn[1], magn[2],
-                port[0], port[1], port[2], port[3], quaternion[0], quaternion[1], quaternion[2], quaternion[3], whatIsThis[0], whatIsThis[1], whatIsThis[2], whatIsThis[3], pressure, altitude, temperature};
+                port[0], port[1], port[2], port[3], quaternion[0], quaternion[1], quaternion[2], quaternion[3], battery, pressure, altitude, temperature};
     }
 
     public static String[] getAllSensorDataNames() {

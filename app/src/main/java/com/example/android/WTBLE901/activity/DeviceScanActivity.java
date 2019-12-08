@@ -177,13 +177,6 @@ public class DeviceScanActivity extends ListActivity {
             }
         }
 
-        //蓝牙连接
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Android M Permission check
-            if (this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 3);
-            }
-        }
         Log.e("--", "onResume");
         // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
         // fire an intent to display acc dialog asking the user to grant permission to enable it.
