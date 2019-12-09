@@ -98,6 +98,11 @@ public class BluetoothLeService extends Service {
 
     private UICallback mUICallback;
 
+    public void setRate(int iOutputRate) {
+        writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
+
+    }
+
 
     public interface UICallback {
         void handleBLEData(Data data);
@@ -364,6 +369,16 @@ public class BluetoothLeService extends Service {
         mBluetoothGatt.disconnect();
         mBluetoothGatt.close();
         mBluetoothGatt = null;
+
+        mConnected = false;
+        if (mRecording) {
+            try {
+                myFile.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mRecording = false;
+        }
     }
 
     @Override

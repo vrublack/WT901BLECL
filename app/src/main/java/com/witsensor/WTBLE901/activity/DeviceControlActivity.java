@@ -302,20 +302,25 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     }
 
     private void Rate() {
-        iOutputRate = 6;
+        SharedPreferences mySharedPreferences= getSharedPreferences("Output", Activity.MODE_PRIVATE);
+        mOutputRate = mySharedPreferences.getInt("Rate", 6);
         new AlertDialog.Builder(this)
                 .setTitle(R.string.SelectRate)
                 .setIcon(android.R.drawable.ic_dialog_alert)
-                .setSingleChoiceItems(new String[]{"0.1Hz", "0.2Hz", "0.5Hz", "1Hz", "2Hz", "5Hz", "10Hz", "20Hz", "50Hz"}, 6, new DialogInterface.OnClickListener() {
+                .setSingleChoiceItems(new String[]{"0.1Hz", "0.2Hz", "0.5Hz", "1Hz", "2Hz", "5Hz", "10Hz", "20Hz", "50Hz"}, mOutputRate, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        iOutputRate = i;
+                        mOutputRate = i;
                     }
                 })
                 .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface arg0, int arg1) {
-                        mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
+                        mService.setRate(mOutputRate);
+                        SharedPreferences mySharedPreferences= getSharedPreferences("Output",Activity.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = mySharedPreferences.edit();
+                        editor.putInt("Rate", mOutputRate);
+                        editor.commit();
                     }
                 })
                 .setNegativeButton(R.string.Cancel, null)
@@ -382,7 +387,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 //    }
 
     int iPortMode = 0;
-    int iOutputRate = 0;
+    int mOutputRate = 0;
 
     private void SetPortMode(final int iPortIndex) {
         iPortMode = 0;
