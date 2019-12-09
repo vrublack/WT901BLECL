@@ -362,6 +362,8 @@ public class BluetoothLeService extends Service {
     }
 
     public void disconnect() {
+        if (!mConnected)
+            return;
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
