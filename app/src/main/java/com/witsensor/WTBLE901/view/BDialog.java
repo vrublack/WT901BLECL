@@ -13,7 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 
 public class BDialog extends DialogFragment {

@@ -11,7 +11,7 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.View;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 
 public class CompassView extends View {

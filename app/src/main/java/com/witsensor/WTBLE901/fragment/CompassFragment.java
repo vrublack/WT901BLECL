@@ -17,7 +17,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.ArrayList;
 import java.util.List;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 /**
  * Created by 葛文博 on 2017/10/25.

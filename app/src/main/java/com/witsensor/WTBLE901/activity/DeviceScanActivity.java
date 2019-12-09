@@ -29,7 +29,7 @@ import com.witsensor.WTBLE901.activity.DeviceControlActivity;
 
 import java.util.ArrayList;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 
 /**
@@ -64,7 +64,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 public class DeviceScanActivity extends ListActivity {
     private LeDeviceListAdapter mLeDeviceListAdapter;

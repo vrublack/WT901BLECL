@@ -10,7 +10,7 @@ import android.widget.EditText;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import butterknife.OnClick;
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 
 /**

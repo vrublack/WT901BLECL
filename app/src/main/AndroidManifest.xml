@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="wtzn.wtbtble901">
+    package="com.witsensor.WTBLE901">
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -40,6 +40,9 @@
         </activity>
         <activity android:name="com.witsensor.WTBLE901.activity.DeviceScanActivity" />
         <activity android:name="com.witsensor.WTBLE901.activity.AngleActivity" />
+        <activity
+            android:name="com.witsensor.WTBLE901.view.ChartActivity"
+            android:label="@string/app_name" />
 
         <service
             android:name="com.witsensor.WTBLE901.activity.BluetoothLeService"

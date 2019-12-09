@@ -54,7 +54,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import wtzn.wtbtble901.R;
+import com.witsensor.WTBLE901.R;
 
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
