@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.fragment;
+package com.witsensor.WTBLE901.fragment;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;

@@ -22,7 +22,7 @@
         android:theme="@style/AppTheme.NoActionBar">
 
         <provider
-            android:name="com.example.android.WTBLE901.data.GenericFileProvider"
+            android:name="com.witsensor.WTBLE901.data.GenericFileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
@@ -31,18 +31,18 @@
                 android:resource="@xml/provider_paths"/>
         </provider>
 
-        <activity android:name="com.example.android.WTBLE901.activity.DeviceControlActivity">
+        <activity android:name="com.witsensor.WTBLE901.activity.DeviceControlActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.example.android.WTBLE901.activity.DeviceScanActivity" />
-        <activity android:name="com.example.android.WTBLE901.activity.AngleActivity" />
+        <activity android:name="com.witsensor.WTBLE901.activity.DeviceScanActivity" />
+        <activity android:name="com.witsensor.WTBLE901.activity.AngleActivity" />
 
         <service
-            android:name="com.example.android.WTBLE901.activity.BluetoothLeService"
+            android:name="com.witsensor.WTBLE901.activity.BluetoothLeService"
             android:enabled="true" />
 
     </application>

@@ -1,11 +1,11 @@
-package com.example.android.WTBLE901.fragment;
+package com.witsensor.WTBLE901.fragment;
 
 import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import com.example.android.WTBLE901.AngleEvent;
-import com.example.android.WTBLE901.LineChartManager;
+import com.witsensor.WTBLE901.AngleEvent;
+import com.witsensor.WTBLE901.LineChartManager;
 import com.github.mikephil.charting.charts.LineChart;
 
 import org.greenrobot.eventbus.EventBus;

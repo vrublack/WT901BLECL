@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.view;
+package com.witsensor.WTBLE901.view;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;

@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901;
+package com.witsensor.WTBLE901;
 
 import android.content.Context;
 import android.content.res.TypedArray;

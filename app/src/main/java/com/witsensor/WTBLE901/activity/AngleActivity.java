@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.activity;
+package com.witsensor.WTBLE901.activity;
 
 import android.os.Build;
 import android.os.Bundle;

@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.activity;
+package com.witsensor.WTBLE901.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -35,19 +35,18 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.android.WTBLE901.AngleEvent;
-import com.example.android.WTBLE901.LineChartManager;
-import com.example.android.WTBLE901.Utils;
-import com.example.android.WTBLE901.data.Data;
-import com.example.android.WTBLE901.fragment.CompassFragment;
-import com.example.android.WTBLE901.fragment.FragmentAdapter;
-import com.example.android.WTBLE901.fragment.GraphFragment;
-import com.example.android.WTBLE901.view.DeviceNameDialog;
+import com.witsensor.WTBLE901.AngleEvent;
+import com.witsensor.WTBLE901.LineChartManager;
+import com.witsensor.WTBLE901.Utils;
+import com.witsensor.WTBLE901.data.Data;
+import com.witsensor.WTBLE901.fragment.CompassFragment;
+import com.witsensor.WTBLE901.fragment.FragmentAdapter;
+import com.witsensor.WTBLE901.fragment.GraphFragment;
+import com.witsensor.WTBLE901.view.DeviceNameDialog;
 import com.github.mikephil.charting.charts.LineChart;
 
 import org.greenrobot.eventbus.EventBus;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 

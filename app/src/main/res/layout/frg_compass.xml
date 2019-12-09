@@ -20,7 +20,7 @@
             android:layout_centerVertical="true"
             android:src="@drawable/circle3" />
 
-        <com.example.android.WTBLE901.CompassView
+        <com.witsensor.WTBLE901.CompassView
             android:id="@+id/myCpv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

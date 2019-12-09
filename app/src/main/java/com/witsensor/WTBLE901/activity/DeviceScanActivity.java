@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.activity;/*
+package com.witsensor.WTBLE901.activity;/*
 
 
 
@@ -25,7 +25,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.android.WTBLE901.activity.DeviceControlActivity;
+import com.witsensor.WTBLE901.activity.DeviceControlActivity;
 
 import java.util.ArrayList;
 
@@ -37,7 +37,6 @@ import wtzn.wtbtble901.R;
  */
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;

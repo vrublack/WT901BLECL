@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.fragment;
+package com.witsensor.WTBLE901.fragment;
 
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -7,8 +7,8 @@ import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.android.WTBLE901.AngleEvent;
-import com.example.android.WTBLE901.CompassView;
+import com.witsensor.WTBLE901.AngleEvent;
+import com.witsensor.WTBLE901.CompassView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;

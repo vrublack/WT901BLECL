@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.android.WTBLE901.activity;
+package com.witsensor.WTBLE901.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
@@ -41,7 +41,7 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-import com.example.android.WTBLE901.data.Data;
+import com.witsensor.WTBLE901.data.Data;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -55,8 +55,6 @@ import java.util.List;
 import java.util.UUID;
 
 import wtzn.wtbtble901.R;
-
-import static com.example.android.WTBLE901.Utils.join;
 
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();

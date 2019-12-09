@@ -1,4 +1,4 @@
-package com.example.android.WTBLE901.data;
+package com.witsensor.WTBLE901.data;
 
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
