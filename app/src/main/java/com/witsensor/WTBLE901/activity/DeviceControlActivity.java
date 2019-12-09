@@ -64,7 +64,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     private BluetoothLeService mService;
     private Button btnAcc, btnGyro, btnAngle, btnMag, btnPressure, btnPort, btnQuater;
     private TextView tvX, tvY, tvZ, tvAll;
-    private boolean mConnected = false;
     //新增折线图
     private LineChart lineChart;
     private LineChartManager lineChartManager;
@@ -112,6 +111,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
     private TextView tvID, tvCell, tvIDName;
 
+    private Thread mRefreshSensor;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -532,6 +532,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 mToConnectTo = getDefaultDevice();
             }
         }
+
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
@@ -556,12 +557,9 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             if (msg.what == 0) {
-                if (mConnected) {
-                  //  try {
-                        mService.writeByes(BluetoothLeService.mDeviceID);
-                        mService.writeByes(BluetoothLeService.cell);
-                 //   }
-                  //  catch (Exception err){}
+                if (mService != null && mService.isConnected()) {
+                    mService.writeByes(BluetoothLeService.mDeviceID);
+                    mService.writeByes(BluetoothLeService.cell);
                 }
             }
         }
@@ -979,6 +977,39 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
         // maybe the service was running in the background but the activity was destroyed
         bindService(new Intent(this, BluetoothLeService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+
+        mRefreshSensor = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        if (mService != null && mService.isConnected()) {
+                            handler.sendEmptyMessageAtTime(0, 5000);
+                            switch (DisplayIndex) {
+                                case 2://Angle
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
+                                    break;
+                                case 3://Mag
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
+                                    break;
+                                case 4://Pressure
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
+                                    break;
+                                case 5://Port
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
+                                    break;
+                                case 6://Quater
+                                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x51, (byte) 0x00});
+                                    break;
+                            }
+                        }
+                        Thread.sleep(240);
+                    }
+                } catch (InterruptedException err) {
+                }
+            }
+        });
+        mRefreshSensor.start();
     }
 
     private void startSensorService() {
@@ -1005,12 +1036,14 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             unbindService(mServiceConnection);
             mService = null;
         }
+
+        mRefreshSensor.interrupt();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
-        if (mConnected) {
+        if (mService != null && mService.isConnected()) {
             menu.findItem(R.id.menu_connect).setVisible(false);
             menu.findItem(R.id.menu_disconnect).setVisible(true);
         } else {
