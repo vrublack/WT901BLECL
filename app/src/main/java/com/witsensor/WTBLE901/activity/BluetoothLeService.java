@@ -93,7 +93,8 @@ public class BluetoothLeService extends Service {
     public static byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
     public static byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
 
-    private Data mData;
+    private Data mData = new Data();
+    
     private char cSetTimeCnt = 0;
 
     private UICallback mUICallback;
@@ -125,7 +126,6 @@ public class BluetoothLeService extends Service {
             final String action = intent.getAction();
             if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
                 mConnected = true;
-                mData = new Data();
                 passNotification(getString(R.string.connected));
                 if (mUICallback != null)
                     mUICallback.onConnected(mDeviceName);
