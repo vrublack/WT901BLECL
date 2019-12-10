@@ -42,6 +42,7 @@ import com.witsensor.WTBLE901.data.Data;
 import com.witsensor.WTBLE901.fragment.CompassFragment;
 import com.witsensor.WTBLE901.fragment.FragmentAdapter;
 import com.witsensor.WTBLE901.fragment.GraphFragment;
+import com.witsensor.WTBLE901.view.ChartActivity;
 import com.witsensor.WTBLE901.view.DeviceNameDialog;
 import com.github.mikephil.charting.charts.LineChart;
 
@@ -462,6 +463,21 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         tvID = (TextView) findViewById(R.id.tv_id);
         tvIDName = (TextView) findViewById(R.id.tv_nameId);
 
+        findViewById(R.id.tv_mark).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mService != null)
+                    mService.addMark();
+            }
+        });
+
+        findViewById(R.id.tv_chart).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
+            }
+        });
+
         onClick(findViewById(R.id.btnAngle));
 
 
@@ -502,12 +518,12 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     new AlertDialog.Builder(DeviceControlActivity.this)
                             .setTitle(getString(R.string.hint))
                             .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setMessage(getString(R.string.data_record) + mService.myFile.path.toString() + "\n" + getString(R.string.open_file))
+                            .setMessage(getString(R.string.data_record) + mService.getPath().toString() + "\n" + getString(R.string.open_file))
                             .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface arg0, int arg1) {
                                     Uri uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".fileprovider",
-                                            mService.myFile.path);
+                                            mService.getPath());
                                     Intent intent = new Intent(Intent.ACTION_VIEW);
                                     intent.setData(uri);
                                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

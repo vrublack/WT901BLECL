@@ -103,6 +103,15 @@ public class BluetoothLeService extends Service {
 
     }
 
+    public void addMark() {
+        if (mRecording)
+            myFile.mark();
+    }
+
+    public File getPath() {
+        return myFile.path;
+    }
+
 
     public interface UICallback {
         void handleBLEData(Data data);
@@ -503,7 +512,7 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    MyFile myFile;
+    private MyFile myFile;
 
     class MyFile {
         FileOutputStream fout;
@@ -526,7 +535,7 @@ public class BluetoothLeService extends Service {
 
         public void mark() {
             try {
-                fout.write("\r\nmark".getBytes());
+                fout.write("mark\n".getBytes());
             } catch (IOException e) {
                 e.printStackTrace();
             }
