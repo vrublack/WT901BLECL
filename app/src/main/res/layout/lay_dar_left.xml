@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -7,7 +11,7 @@
 
     <TextView
         style="@style/mTextView"
-        android:layout_height="15dp"
+        android:layout_height="30dp"
         android:background="@color/accent_1" />
 
     <TextView
@@ -157,4 +161,5 @@
         android:layout_height="0.5dp"
         android:background="@color/bgdddddd"></View>
 
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>
