@@ -493,6 +493,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         tvRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (mService == null || !mService.isConnected())
+                    return;
                 if (!mService.isRecording()) {
                     tvRecord.setText(getString(R.string.menu_stop));
                 } else {

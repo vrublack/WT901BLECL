@@ -123,6 +123,7 @@ public class BluetoothLeService extends Service {
                 writeByes(cell);
             } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
                 mConnected = false;
+                mRecording = false;
                 passNotification(getString(R.string.disconnected));
                 connect(mDeviceAddress);
                 if (mUICallback != null)
