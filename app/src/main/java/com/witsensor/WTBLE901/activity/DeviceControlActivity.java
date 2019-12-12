@@ -728,12 +728,14 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
         @Override
         public void onConnected(String deviceName) {
-            invalidateOptionsMenu();
+            DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
+            DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
         }
 
         @Override
         public void onDisconnected() {
-            invalidateOptionsMenu();
+            DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
+            DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
         }
     };
 
@@ -903,15 +905,29 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         disconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mService != null && mService.isConnected()) {
+                if (mService != null) {
                     mService.disconnect();
-                    setDefaultDevice(null);
-                } else {
-                    try {
-                        Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
-                        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-                    } catch (Exception err) {
-                    }
+                }
+            }
+        });
+
+        findViewById(R.id.tv_connect_other).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mService != null)
+                    mService.disconnect();
+                setDefaultDevice(null);
+                Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+            }
+        });
+
+        findViewById(R.id.tv_connect).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String defaultDevice = getDefaultDevice();
+                if (mService != null && defaultDevice != null) {
+                    mService.connect(defaultDevice);
                 }
             }
         });
@@ -1056,19 +1072,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         }
 
         mRefreshSensor.interrupt();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.gatt_services, menu);
-        if (mService != null && mService.isConnected()) {
-            menu.findItem(R.id.menu_connect).setVisible(false);
-            menu.findItem(R.id.menu_disconnect).setVisible(true);
-        } else {
-            menu.findItem(R.id.menu_connect).setVisible(true);
-            menu.findItem(R.id.menu_disconnect).setVisible(false);
-        }
-        return true;
     }
 
     @Override

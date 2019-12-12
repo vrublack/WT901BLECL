@@ -134,7 +134,6 @@ public class BluetoothLeService extends Service {
                 mConnected = false;
                 mRecording = false;
                 passNotification(getString(R.string.disconnected));
-                connect(mDeviceAddress);
                 if (mUICallback != null)
                     mUICallback.onDisconnected();
             } else if (ACTION_DATA_AVAILABLE.equals(action)) {
@@ -164,6 +163,8 @@ public class BluetoothLeService extends Service {
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
                 broadcastUpdate(intentAction);
+                if (mUICallback != null)
+                    mUICallback.onDisconnected();
             }
         }
 
@@ -379,9 +380,6 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.disconnect();
-        mBluetoothGatt.close();
-        mBluetoothGatt = null;
-
         mConnected = false;
         if (mRecording) {
             try {

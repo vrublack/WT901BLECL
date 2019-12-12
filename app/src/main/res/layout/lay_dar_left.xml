@@ -131,10 +131,30 @@
         style="@style/mTextView"
         android:text="@string/Rename" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
     <TextView
         android:id="@+id/tv_disconnect"
         style="@style/mTextView"
         android:text="@string/disconnect" />
+
+    <TextView
+        android:id="@+id/tv_connect"
+        style="@style/mTextView"
+        android:text="@string/menu_connect" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/bgdddddd"></View>
+
+    <TextView
+        android:id="@+id/tv_connect_other"
+        style="@style/mTextView"
+        android:text="@string/connect_other" />
 
     <View
         android:layout_width="match_parent"
