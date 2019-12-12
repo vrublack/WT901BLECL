@@ -232,14 +232,16 @@ public class ChartActivity extends Activity {
         actualData.add(setZ);
         calibData.add(getCalibLine("z calib", Color.rgb(0, 0, 0xe0), zCalib, minTime, maxTime));
 
-        ScatterDataSet setMarks;
-        setMarks = new ScatterDataSet(marks, "marks");
-        setMarks.setDrawIcons(false);
-        setMarks.setColor(Color.MAGENTA);
-        setMarks.setValueTextSize(9f);
-        setMarks.setScatterShape(ScatterChart.ScatterShape.TRIANGLE);
-        setMarks.setScatterShapeSize(20f);
-        actualData.add(setMarks);
+        if (marks.size() > 0) {
+            ScatterDataSet setMarks;
+            setMarks = new ScatterDataSet(marks, "marks");
+            setMarks.setDrawIcons(false);
+            setMarks.setColor(Color.MAGENTA);
+            setMarks.setValueTextSize(9f);
+            setMarks.setScatterShape(ScatterChart.ScatterShape.TRIANGLE);
+            setMarks.setScatterShapeSize(20f);
+            actualData.add(setMarks);
+        }
 
         CombinedData data = new CombinedData();
         data.setData(new LineData(calibData));
