@@ -20,13 +20,13 @@
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="65dp"
+            android:layout_height="60dp"
             android:background="@color/accent_1">
 
             <TextView
                 android:id="@+id/tv_set"
                 android:layout_width="30dp"
-                android:layout_height="25dp"
+                android:layout_height="30dp"
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="15dp"
                 android:background="@drawable/icon_musen" />
@@ -46,6 +46,8 @@
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
                 android:layout_marginRight="10dp"
+                android:alpha="0.6"
+                android:enabled="false"
                 android:gravity="center"
                 android:text="@string/Record"
                 android:textColor="@color/colorTextPrimary"
@@ -63,7 +65,8 @@
 
                 <Button
                     android:id="@+id/btnAcc"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Acc"
@@ -72,16 +75,18 @@
 
                 <Button
                     android:id="@+id/btnGyro"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:text="@string/AngleVelocity"
+                    android:text="@string/gyr"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
 
                 <Button
                     android:id="@+id/btnAngle"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Angle"
@@ -90,7 +95,8 @@
 
                 <Button
                     android:id="@+id/btnMag"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Mag"
@@ -99,7 +105,8 @@
 
                 <Button
                     android:id="@+id/btnPressure"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Pressure"
@@ -108,7 +115,8 @@
 
                 <Button
                     android:id="@+id/btnPort"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Port"
@@ -117,7 +125,8 @@
 
                 <Button
                     android:id="@+id/btnQuater"
-                    android:layout_width="70dp"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:text="@string/Quater"
@@ -193,6 +202,7 @@
                     android:id="@+id/lineChart"
                     android:layout_width="match_parent"
                     android:layout_height="150dp"
+                    android:layout_marginBottom="20dp"
                     android:padding="10dp" />
 
 

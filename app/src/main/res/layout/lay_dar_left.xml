@@ -14,11 +14,6 @@
         android:layout_height="30dp"
         android:background="@color/accent_1" />
 
-    <TextView
-        style="@style/mTextView"
-        android:text="@string/Setting" />
-
-
     <View
         android:layout_width="match_parent"
         android:layout_height="0.5dp"

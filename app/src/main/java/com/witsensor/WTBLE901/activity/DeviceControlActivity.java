@@ -143,14 +143,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     int DisplayIndex = 0;
 
     private void SetCurrentTab(View v) {
-        btnAcc.setBackgroundColor(0xff33b5e5);
-        btnGyro.setBackgroundColor(0xff33b5e5);
-        btnAngle.setBackgroundColor(0xff33b5e5);
-        btnMag.setBackgroundColor(0xff33b5e5);
-        btnPressure.setBackgroundColor(0xff33b5e5);
-        btnPort.setBackgroundColor(0xff33b5e5);
-        btnQuater.setBackgroundColor(0xff33b5e5);
-        ((Button) v).setBackgroundColor(0xff0099cc);
     }
 
     @Override
@@ -728,14 +720,31 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
 
         @Override
         public void onConnected(String deviceName) {
-            DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
-            DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
+                    DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
+                    tvRecord.setEnabled(true);
+                    tvRecord.setAlpha(1.0f);
+                    Toast.makeText(DeviceControlActivity.this, R.string.connected, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @Override
         public void onDisconnected() {
-            DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
-            DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
+                    DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
+                    tvRecord.setText(R.string.Record);
+                    tvRecord.setEnabled(false);
+                    tvRecord.setAlpha(0.6f);    // grayed out
+                    Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     };
 

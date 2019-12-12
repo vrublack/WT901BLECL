@@ -561,7 +561,7 @@ public class BluetoothLeService extends Service {
                 e.printStackTrace();
             }
         } else {
-            passNotification(getString(R.string.not_recording));
+            passNotification(getString(R.string.connected));
 
             mRecording = false;
             try {

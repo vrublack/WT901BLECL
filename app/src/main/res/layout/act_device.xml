@@ -14,7 +14,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="65dp"
+        android:layout_height="60dp"
         android:background="@color/accent_1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -27,6 +27,7 @@
             android:layout_weight="1"
             android:padding="10dp"
             android:text="WT901BLE"
+            android:textColor="@color/white"
             android:textSize="20sp" />
 
         <TextView
@@ -35,6 +36,7 @@
             android:layout_height="wrap_content"
             android:padding="10dp"
             android:text="sdf"
+            android:textColor="@color/white"
             android:textSize="18sp" />
     </LinearLayout>
 

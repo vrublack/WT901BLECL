@@ -36,13 +36,13 @@
     <string name="SelectPortMode">Please select port mode:</string>
     <string name="Finish">Finish</string>
     <string name="MagCali">MagCali</string>
-    <string name="Acc">a</string>
+    <string name="Acc">Acc</string>
     <string name="AngleVelocity">w</string>
     <string name="Angle">Angle</string>
     <string name="Mag">Mag</string>
-    <string name="Pressure">P</string>
+    <string name="Pressure">Press</string>
     <string name="Port">Port</string>
-    <string name="Quater">q</string>
+    <string name="Quater">Quart</string>
     <string name="AccCali">Acc Cali</string>
     <string name="AccCaliL">Acc Cali L</string>
     <string name="AccCaliR">Acc Cali R</string>
@@ -69,4 +69,5 @@
     <string name="chart">Chart</string>
     <string name="mark">Mark</string>
     <string name="connect_other">Connect to other</string>
+    <string name="gyr">Gyr</string>
 </resources>
