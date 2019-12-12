@@ -79,6 +79,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/gyr"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
@@ -89,6 +90,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/Angle"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
@@ -99,6 +101,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/Mag"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
@@ -109,6 +112,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/Pressure"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
@@ -119,6 +123,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/Port"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />
@@ -129,6 +134,7 @@
                     android:layout_width="80dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:alpha="0.6"
                     android:text="@string/Quater"
                     android:textColor="@android:color/white"
                     android:textSize="16sp" />

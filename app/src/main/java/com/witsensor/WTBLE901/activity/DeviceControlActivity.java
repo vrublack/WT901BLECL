@@ -143,6 +143,14 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     int DisplayIndex = 0;
 
     private void SetCurrentTab(View v) {
+        btnAcc.setAlpha(0.6f);
+        btnGyro.setAlpha(0.6f);
+        btnAngle.setAlpha(0.6f);
+        btnMag.setAlpha(0.6f);
+        btnPressure.setAlpha(0.6f);
+        btnPort.setAlpha(0.6f);
+        btnQuater.setAlpha(0.6f);
+        ((Button) v).setAlpha(1.0f);
     }
 
     @Override
