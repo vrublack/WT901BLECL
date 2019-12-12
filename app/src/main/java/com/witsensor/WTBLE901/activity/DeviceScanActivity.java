@@ -223,14 +223,14 @@ public class DeviceScanActivity extends ListActivity {
     private class LeDeviceListAdapter extends BaseAdapter {
         private ArrayList<BluetoothDevice> mLeDevices;
         private ArrayList<Integer> mRSSIs;
-        private ArrayList<byte[]> mRecords;
+        private ArrayList<ScanRecord> mRecords;
         private LayoutInflater mInflator;
 
         public LeDeviceListAdapter() {
             super();
             mLeDevices = new ArrayList<BluetoothDevice>();
             mRSSIs = new ArrayList<Integer>();
-            mRecords = new ArrayList<byte[]>();
+            mRecords = new ArrayList<ScanRecord>();
             mInflator = DeviceScanActivity.this.getLayoutInflater();
         }
 
@@ -238,7 +238,7 @@ public class DeviceScanActivity extends ListActivity {
             if (!mLeDevices.contains(device)) {
                 mLeDevices.add(device);
                 mRSSIs.add(rssi);
-                mRecords.add(record.getBytes());
+                mRecords.add(record);
             }
         }
 
@@ -280,11 +280,11 @@ public class DeviceScanActivity extends ListActivity {
             }
 
             BluetoothDevice device = mLeDevices.get(i);
-            final String deviceName = device.getName();
-            if (deviceName != null && deviceName.length() > 0)
-                viewHolder.deviceName.setText(deviceName + "  RSSI:" + mRSSIs.get(i).toString());
+            final String deviceName = mRecords.get(i).getDeviceName();
+            if (deviceName != null && deviceName.trim().length() > 0)
+                viewHolder.deviceName.setText(deviceName.trim() + "  RSSI:" + mRSSIs.get(i).toString());
             else
-                viewHolder.deviceName.setText(R.string.unknown_device);
+                viewHolder.deviceName.setText(R.string.unknown_device + "  RSSI:" + mRSSIs.get(i).toString());
             viewHolder.deviceAddress.setText(device.getAddress());
 
             return view;
