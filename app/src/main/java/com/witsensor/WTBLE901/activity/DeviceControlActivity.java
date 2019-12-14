@@ -136,9 +136,13 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             }
 
             if (mService.isConnected()) {
+                DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
+                DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
                 tvRecord.setEnabled(true);
                 tvRecord.setAlpha(1.0f);
             } else {
+                DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
+                DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
                 tvRecord.setEnabled(false);
                 tvRecord.setAlpha(0.6f);
             }
