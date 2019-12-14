@@ -120,8 +120,11 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             mService = ((BluetoothLeService.LocalBinder) service).getService();
 
             if (mToConnectTo != null) {
-                mService.connect(mToConnectTo);
-                mToConnectTo = null;
+                if (mService.connect(mToConnectTo)) {
+                    mToConnectTo = null;
+                } else {
+                    Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
+                }
             }
 
             mService.setUICallback(mCallback);
@@ -575,8 +578,11 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     mToConnectTo = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
                     setDefaultDevice(mToConnectTo);
                     if (resultCode == Activity.RESULT_OK && mService != null) {
-                        mService.connect(mToConnectTo);
-                        mToConnectTo = null;
+                        if (mService.connect(mToConnectTo)) {
+                            mToConnectTo = null;
+                        } else {
+                            Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
                 break;
@@ -958,7 +964,9 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             public void onClick(View view) {
                 String defaultDevice = getDefaultDevice();
                 if (mService != null && defaultDevice != null) {
-                    mService.connect(defaultDevice);
+                    if (!mService.connect(defaultDevice)) {
+                        Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });

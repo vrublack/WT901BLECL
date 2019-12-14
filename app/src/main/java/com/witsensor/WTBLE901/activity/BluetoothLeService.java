@@ -142,6 +142,7 @@ public class BluetoothLeService extends Service {
                 if (mUICallback != null)
                     mUICallback.handleBLEData(mData);
             }
+            Log.i(TAG, "mGattUpdateReceiver: " + action);
         }
     };
 
@@ -166,6 +167,8 @@ public class BluetoothLeService extends Service {
                 if (mUICallback != null)
                     mUICallback.onDisconnected();
             }
+
+            Log.i(TAG, "mGattCallback: " + newState);
         }
 
         @Override
@@ -352,21 +355,19 @@ public class BluetoothLeService extends Service {
         if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
                 && mBluetoothGatt != null) {
             Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
-            if (mBluetoothGatt.connect()) {
-                mConnectionState = STATE_CONNECTING;
-                return true;
-            } else {
+            if (!mBluetoothGatt.connect()) {
                 return false;
             }
+        } else {
+            final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+            if (device == null) {
+                Log.w(TAG, "Device not found.  Unable to connect.");
+                return false;
+            }
+            mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
+            Log.d(TAG, "Trying to create acc new connection.");
         }
 
-        final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        if (device == null) {
-            Log.w(TAG, "Device not found.  Unable to connect.");
-            return false;
-        }
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
-        Log.d(TAG, "Trying to create acc new connection.");
         mBluetoothDeviceAddress = address;
         mConnectionState = STATE_CONNECTING;
         return true;
@@ -470,7 +471,6 @@ public class BluetoothLeService extends Service {
 
     public boolean writeByes(byte[] bytes) {
         if (mNotifyCharacteristic != null) {
-            Log.d("BLE", "WriteByte");
             mNotifyCharacteristic.setValue(bytes);
             return mBluetoothGatt.writeCharacteristic(mNotifyCharacteristic);
         } else {

@@ -70,4 +70,5 @@
     <string name="mark">Mark</string>
     <string name="connect_other">Connect to other</string>
     <string name="gyr">Gyr</string>
+    <string name="connect_failed">Failed to connect</string>
 </resources>
