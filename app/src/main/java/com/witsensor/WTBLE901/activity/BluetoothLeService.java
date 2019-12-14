@@ -471,6 +471,7 @@ public class BluetoothLeService extends Service {
 
     public boolean writeByes(byte[] bytes) {
         if (mNotifyCharacteristic != null) {
+            Log.d("BLE", "WriteByte");
             mNotifyCharacteristic.setValue(bytes);
             return mBluetoothGatt.writeCharacteristic(mNotifyCharacteristic);
         } else {
