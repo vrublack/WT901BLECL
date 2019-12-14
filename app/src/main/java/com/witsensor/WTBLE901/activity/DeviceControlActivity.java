@@ -131,6 +131,16 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             // update UI now
             if (mService.isRecording()) {
                 tvRecord.setText(R.string.menu_stop);
+            } else {
+                tvRecord.setText(R.string.Record);
+            }
+
+            if (mService.isConnected()) {
+                tvRecord.setEnabled(true);
+                tvRecord.setAlpha(1.0f);
+            } else {
+                tvRecord.setEnabled(false);
+                tvRecord.setAlpha(0.6f);
             }
         }
 
