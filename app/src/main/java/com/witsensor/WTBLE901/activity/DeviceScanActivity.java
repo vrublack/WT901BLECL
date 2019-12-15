@@ -248,6 +248,8 @@ public class DeviceScanActivity extends ListActivity {
 
         public void clear() {
             mLeDevices.clear();
+            mRSSIs.clear();
+            mRecords.clear();
         }
 
         @Override
@@ -284,7 +286,7 @@ public class DeviceScanActivity extends ListActivity {
             if (deviceName != null && deviceName.trim().length() > 0)
                 viewHolder.deviceName.setText(deviceName.trim() + "  RSSI:" + mRSSIs.get(i).toString());
             else
-                viewHolder.deviceName.setText(R.string.unknown_device + "  RSSI:" + mRSSIs.get(i).toString());
+                viewHolder.deviceName.setText(getString(R.string.unknown_device) + "  RSSI:" + mRSSIs.get(i).toString());
             viewHolder.deviceAddress.setText(device.getAddress());
 
             return view;
