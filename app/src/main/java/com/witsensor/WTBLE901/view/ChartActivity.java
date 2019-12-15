@@ -172,6 +172,8 @@ public class ChartActivity extends Activity {
                             continue;
                         String timeStr = comps[1];
                         float angleX = Float.parseFloat(comps[2]);
+                        if (angleX < 0)
+                            angleX = 360 + angleX;
                         float angleY = Float.parseFloat(comps[3]);
                         float angleZ = Float.parseFloat(comps[4]);
                         Date date = new SimpleDateFormat("HH:mm:ss.SSS").parse(timeStr);
