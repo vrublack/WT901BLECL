@@ -756,6 +756,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     tvRecord.setEnabled(true);
                     tvRecord.setAlpha(1.0f);
                     Toast.makeText(DeviceControlActivity.this, R.string.connected, Toast.LENGTH_SHORT).show();
+                    findViewById(R.id.spinner).setVisibility(View.GONE);
                 }
             });
         }
@@ -771,6 +772,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     tvRecord.setEnabled(false);
                     tvRecord.setAlpha(0.6f);    // grayed out
                     Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();
+                    findViewById(R.id.spinner).setVisibility(View.GONE);
                 }
             });
         }
@@ -944,6 +946,8 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             public void onClick(View view) {
                 if (mService != null) {
                     mService.disconnect();
+                    findViewById(R.id.spinner).setVisibility(View.VISIBLE);
+                    view.setVisibility(View.GONE);
                 }
             }
         });
@@ -964,7 +968,10 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             public void onClick(View view) {
                 String defaultDevice = getDefaultDevice();
                 if (mService != null && defaultDevice != null) {
-                    if (!mService.connect(defaultDevice)) {
+                    if (mService.connect(defaultDevice)) {
+                        findViewById(R.id.spinner).setVisibility(View.VISIBLE);
+                        view.setVisibility(View.GONE);
+                    } else {
                         Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
                     }
                 }
