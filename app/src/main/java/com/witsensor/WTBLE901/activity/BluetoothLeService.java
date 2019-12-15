@@ -84,7 +84,8 @@ public class BluetoothLeService extends Service {
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private int mConnectionState = STATE_DISCONNECTED;
+    private int mConnectionCounter; // to catch cases where an old mNotifyCharacteristic is used
+    private boolean mManuallyDisconnected;  // to catch a bug where the device somehow gets reconnected
     private String mDeviceName;
     private String mDeviceAddress;
     private boolean mRecording;
@@ -133,6 +134,7 @@ public class BluetoothLeService extends Service {
             } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
                 mConnected = false;
                 mRecording = false;
+                mNotifyCharacteristic = null;
                 passNotification(getString(R.string.disconnected));
                 if (mUICallback != null)
                     mUICallback.onDisconnected();
@@ -152,16 +154,15 @@ public class BluetoothLeService extends Service {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                intentAction = ACTION_GATT_CONNECTED;
-                mConnectionState = STATE_CONNECTED;
-                broadcastUpdate(intentAction);
-                Log.i(TAG, "Connected to GATT server.");
-                Log.i(TAG, "Attempting to start service discovery:" +
-                        mBluetoothGatt.discoverServices());
-
+                if (!mManuallyDisconnected) {
+                    intentAction = ACTION_GATT_CONNECTED;
+                    broadcastUpdate(intentAction);
+                    Log.i(TAG, "Connected to GATT server.");
+                    Log.i(TAG, "Attempting to start service discovery:" +
+                            mBluetoothGatt.discoverServices());
+                }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
-                mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
                 broadcastUpdate(intentAction);
                 if (mUICallback != null)
@@ -352,6 +353,8 @@ public class BluetoothLeService extends Service {
             return false;
         }
 
+        mManuallyDisconnected = false;
+
         if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
                 && mBluetoothGatt != null) {
             Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
@@ -369,7 +372,6 @@ public class BluetoothLeService extends Service {
         }
 
         mBluetoothDeviceAddress = address;
-        mConnectionState = STATE_CONNECTING;
         return true;
     }
 
@@ -380,6 +382,7 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+        mManuallyDisconnected = true;
         mBluetoothGatt.disconnect();
         mConnected = false;
         if (mRecording) {
