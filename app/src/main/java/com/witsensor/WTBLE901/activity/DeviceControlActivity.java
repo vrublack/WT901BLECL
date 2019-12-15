@@ -768,7 +768,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 public void run() {
                     DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
                     DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
-                    tvRecord.setText(R.string.Record);
                     tvRecord.setEnabled(false);
                     tvRecord.setAlpha(0.6f);    // grayed out
                     Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();

@@ -127,15 +127,20 @@ public class BluetoothLeService extends Service {
             final String action = intent.getAction();
             if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
                 mConnected = true;
-                passNotification(getString(R.string.connected));
+                if (mRecording)
+                    passNotification(getString(R.string.recording));
+                else
+                    passNotification(getString(R.string.connected));
                 if (mUICallback != null)
                     mUICallback.onConnected(mDeviceName);
                 writeByes(cell);
             } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
                 mConnected = false;
-                mRecording = false;
                 mNotifyCharacteristic = null;
-                passNotification(getString(R.string.disconnected));
+                if (mRecording)
+                    passNotification(getString(R.string.recording_waiting_reconnect));
+                else
+                    passNotification(getString(R.string.disconnected));
                 if (mUICallback != null)
                     mUICallback.onDisconnected();
             } else if (ACTION_DATA_AVAILABLE.equals(action)) {
@@ -367,7 +372,7 @@ public class BluetoothLeService extends Service {
                 Log.w(TAG, "Device not found.  Unable to connect.");
                 return false;
             }
-            mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
+            mBluetoothGatt = device.connectGatt(this, true, mGattCallback);
             Log.d(TAG, "Trying to create acc new connection.");
         }
 

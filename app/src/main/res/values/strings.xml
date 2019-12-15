@@ -71,4 +71,5 @@
     <string name="connect_other">Connect to other</string>
     <string name="gyr">Gyr</string>
     <string name="connect_failed">Failed to connect</string>
+    <string name="recording_waiting_reconnect">Recording, waiting for reconnect</string>
 </resources>
