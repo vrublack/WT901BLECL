@@ -180,7 +180,15 @@ public class ChartActivity extends Activity {
                         float seconds = date.getTime() / 1000.f;
                         if (firstSeconds == -1)
                             firstSeconds = seconds;
-                        seconds -= firstSeconds;
+
+                        if (seconds < firstSeconds) {
+                            // fix day wrapover problem
+                            seconds = 24 * 60 * 60 - firstSeconds + seconds;
+                        }
+                        else {
+                            seconds -= firstSeconds;
+                        }
+
                         result.add(new float[]{seconds, angleX, angleY, angleZ});
                     }
                 } catch (ParseException | NumberFormatException e) {
