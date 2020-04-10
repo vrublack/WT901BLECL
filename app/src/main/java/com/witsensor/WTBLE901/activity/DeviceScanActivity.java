@@ -47,6 +47,7 @@ import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -58,6 +59,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -76,9 +78,11 @@ public class DeviceScanActivity extends ListActivity {
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
-    private TextView tvScan;
+    private View mViewScan;
+    private View mViewOkay;
 
     public final static int PERMISSION_REQUEST_FINE_LOCATION = 2;
+    private SharedPreferences mSharedPrefs;
 
 
     @Override
@@ -91,10 +95,8 @@ public class DeviceScanActivity extends ListActivity {
         }
         setContentView(R.layout.act_device);
 
-        TextView tvTitle = (TextView) findViewById(R.id.tv_title);
-        tvScan = (TextView) findViewById(R.id.tv_scan);
-        tvScan.setText(getString(R.string.menu_stop));
-        tvScan.setOnClickListener(new View.OnClickListener() {
+        mViewScan = findViewById(R.id.scan);
+        mViewScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mScanning) {
@@ -104,6 +106,14 @@ public class DeviceScanActivity extends ListActivity {
                     mLeDeviceListAdapter.notifyDataSetChanged();
                     scanLeDevice(true);
                 }
+            }
+        });
+
+        mViewOkay = findViewById(R.id.okay);
+        mViewOkay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
             }
         });
 
@@ -127,6 +137,8 @@ public class DeviceScanActivity extends ListActivity {
             finish();
             return;
         }
+
+        mSharedPrefs = getSharedPreferences("General", Activity.MODE_PRIVATE);;
 
     }
 
@@ -172,23 +184,20 @@ public class DeviceScanActivity extends ListActivity {
     protected void onPause() {
         super.onPause();
         scanLeDevice(false);
+
+        for (int i = 0; i < mLeDeviceListAdapter.mLeDevices.size(); i++) {
+            setUsingSensor(mLeDeviceListAdapter.mLeDevices.get(i), mLeDeviceListAdapter.mUse.get(i));
+        }
+
         mLeDeviceListAdapter.clear();
         mLeDeviceListAdapter.notifyDataSetChanged();
     }
 
     @Override
-    protected void onListItemClick(ListView l, View v, int position, long id) {
-        final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
-        if (device == null) return;
-        final Intent intent = new Intent(this, DeviceControlActivity.class);
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
-        if (mScanning) {
-            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
-            mScanning = false;
-        }
-        setResult(Activity.RESULT_OK, intent);
-        finish();
+    protected void onListItemClick(ListView l, View view, int position, long id) {
+        CheckBox cb = ((ViewHolder) view.getTag()).use;
+        cb.toggle();
+        mLeDeviceListAdapter.mUse.set(position, cb.isChecked());
     }
 
     private void scanLeDevice(final boolean enable) {
@@ -199,7 +208,6 @@ public class DeviceScanActivity extends ListActivity {
                 public void run() {
                     mScanning = false;
                     mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
-                    tvScan.setText(getString(R.string.menu_scan));
                 }
             }, SCAN_PERIOD);
 
@@ -211,12 +219,23 @@ public class DeviceScanActivity extends ListActivity {
                 }
             });
             mBluetoothAdapter.getBluetoothLeScanner().startScan(mLeScanCallback);
-            tvScan.setText(getString(R.string.menu_stop));
         } else {
             mScanning = false;
             mBluetoothAdapter.getBluetoothLeScanner().stopScan(mLeScanCallback);
-            tvScan.setText(getString(R.string.menu_scan));
         }
+    }
+
+    private boolean isUsingSensor(BluetoothDevice device) {
+        return mSharedPrefs.getBoolean("Using-" + device.getAddress(), false);
+    }
+
+    private void setUsingSensor(BluetoothDevice device, boolean use) {
+        SharedPreferences.Editor editor = mSharedPrefs.edit();
+        if (!use)
+            editor.remove("Using-" + device.getAddress());
+        else
+            editor.putBoolean("Using-" + device.getAddress(), true);
+        editor.apply();
     }
 
     // Adapter for holding devices found through scanning.
@@ -224,6 +243,7 @@ public class DeviceScanActivity extends ListActivity {
         private ArrayList<BluetoothDevice> mLeDevices;
         private ArrayList<Integer> mRSSIs;
         private ArrayList<ScanRecord> mRecords;
+        private ArrayList<Boolean> mUse;
         private LayoutInflater mInflator;
 
         public LeDeviceListAdapter() {
@@ -232,6 +252,7 @@ public class DeviceScanActivity extends ListActivity {
             mRSSIs = new ArrayList<Integer>();
             mRecords = new ArrayList<ScanRecord>();
             mInflator = DeviceScanActivity.this.getLayoutInflater();
+            mUse = new ArrayList<>();
         }
 
         public void addDevice(BluetoothDevice device, int rssi, ScanRecord record) {
@@ -239,6 +260,7 @@ public class DeviceScanActivity extends ListActivity {
                 mLeDevices.add(device);
                 mRSSIs.add(rssi);
                 mRecords.add(record);
+                mUse.add(isUsingSensor(device));
             }
         }
 
@@ -276,6 +298,7 @@ public class DeviceScanActivity extends ListActivity {
                 viewHolder = new ViewHolder();
                 viewHolder.deviceAddress = (TextView) view.findViewById(R.id.device_address);
                 viewHolder.deviceName = (TextView) view.findViewById(R.id.device_name);
+                viewHolder.use = view.findViewById(R.id.use);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) view.getTag();
@@ -288,6 +311,7 @@ public class DeviceScanActivity extends ListActivity {
             else
                 viewHolder.deviceName.setText(getString(R.string.unknown_device) + "  RSSI:" + mRSSIs.get(i).toString());
             viewHolder.deviceAddress.setText(device.getAddress());
+            viewHolder.use.setChecked(mUse.get(i));
 
             return view;
         }
@@ -312,5 +336,6 @@ public class DeviceScanActivity extends ListActivity {
     static class ViewHolder {
         TextView deviceName;
         TextView deviceAddress;
+        CheckBox use;
     }
 }
