@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_connect"
+        android:title="@string/menu_connect" />
+    <item
+        android:id="@+id/action_resume"
+        android:title="@string/Resume" />
+    <item
+        android:id="@+id/action_connect_other"
+        android:title="@string/connect_other" />
+    <item
+        android:id="@+id/action_chart"
+        android:title="@string/chart" />
+    <item
+        android:id="@+id/action_mark"
+        android:title="@string/mark" />
+    <item
+        android:id="@+id/action_acli"
+        android:title="@string/AccCali" />
+    <item
+        android:id="@+id/action_cali_l"
+        android:title="@string/AccCaliL" />
+    <item
+        android:id="@+id/action_cali_r"
+        android:title="@string/AccCaliR" />
+    <item
+        android:id="@+id/action_magcali"
+        android:title="@string/MagCali" />
+    <item
+        android:id="@+id/action_d0"
+        android:title="D0" />
+    <item
+        android:id="@+id/action_d1"
+        android:title="D1" />
+    <item
+        android:id="@+id/action_d2"
+        android:title="D2" />
+    <item
+        android:id="@+id/action_d3"
+        android:title="D3" />
+    <item
+        android:id="@+id/action_rate"
+        android:title="@string/Rate" />
+    <item
+        android:id="@+id/action_rename"
+        android:title="@string/Rename" />
+
+</menu>

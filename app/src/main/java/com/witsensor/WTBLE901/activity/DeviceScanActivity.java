@@ -38,7 +38,6 @@ import com.witsensor.WTBLE901.R;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -52,12 +51,16 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.ListView;
@@ -68,7 +71,7 @@ import java.util.ArrayList;
 
 import com.witsensor.WTBLE901.R;
 
-public class DeviceScanActivity extends ListActivity {
+public class DeviceScanActivity extends AppCompatActivity {
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
     private boolean mScanning;
@@ -78,6 +81,7 @@ public class DeviceScanActivity extends ListActivity {
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
+    private ListView mListView;
     private View mViewScan;
     private View mViewOkay;
 
@@ -88,34 +92,23 @@ public class DeviceScanActivity extends ListActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            window.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        }
         setContentView(R.layout.act_device);
 
-        mViewScan = findViewById(R.id.scan);
-        mViewScan.setOnClickListener(new View.OnClickListener() {
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+
+        setTitle(R.string.pick_use);
+
+        mListView = findViewById(R.id.listView);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onClick(View view) {
-                if (mScanning) {
-                    scanLeDevice(false);
-                } else {
-                    mLeDeviceListAdapter.clear();
-                    mLeDeviceListAdapter.notifyDataSetChanged();
-                    scanLeDevice(true);
-                }
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                CheckBox cb = ((ViewHolder) view.getTag()).use;
+                cb.toggle();
+                mLeDeviceListAdapter.mUse.set(i, cb.isChecked());
             }
         });
 
-        mViewOkay = findViewById(R.id.okay);
-        mViewOkay.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-            }
-        });
 
         mHandler = new Handler();
 
@@ -138,9 +131,40 @@ public class DeviceScanActivity extends ListActivity {
             return;
         }
 
-        mSharedPrefs = getSharedPreferences("General", Activity.MODE_PRIVATE);;
-
+        mSharedPrefs = getSharedPreferences("General", Activity.MODE_PRIVATE);
     }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.act_scan, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.okay:
+                final Intent intent = new Intent(this, DeviceControlActivity.class);
+                setResult(Activity.RESULT_OK, intent);
+                finish();
+                return true;
+            case R.id.refresh:
+                if (mScanning) {
+                    scanLeDevice(false);
+                } else {
+                    mLeDeviceListAdapter.clear();
+                    mLeDeviceListAdapter.notifyDataSetChanged();
+                    scanLeDevice(true);
+                }
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
 
     @Override
     protected void onResume() {
@@ -165,7 +189,7 @@ public class DeviceScanActivity extends ListActivity {
         }
         // Initializes list view adapter.
         mLeDeviceListAdapter = new LeDeviceListAdapter();
-        setListAdapter(mLeDeviceListAdapter);
+        mListView.setAdapter(mLeDeviceListAdapter);
         scanLeDevice(true);
         Log.e("--", "scanLeDevice");
     }
@@ -191,13 +215,6 @@ public class DeviceScanActivity extends ListActivity {
 
         mLeDeviceListAdapter.clear();
         mLeDeviceListAdapter.notifyDataSetChanged();
-    }
-
-    @Override
-    protected void onListItemClick(ListView l, View view, int position, long id) {
-        CheckBox cb = ((ViewHolder) view.getTag()).use;
-        cb.toggle();
-        mLeDeviceListAdapter.mUse.set(position, cb.isChecked());
     }
 
     private void scanLeDevice(final boolean enable) {

@@ -15,20 +15,23 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -54,7 +57,7 @@ import java.util.List;
 import com.witsensor.WTBLE901.R;
 
 
-public class DeviceControlActivity extends FragmentActivity implements View.OnClickListener, ViewPager.OnPageChangeListener {
+public class DeviceControlActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, View.OnClickListener, ViewPager.OnPageChangeListener {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
@@ -97,6 +100,9 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     private List<String> qNames = new ArrayList<>(); //折线名字集合
     private List<Integer> qColour = new ArrayList<>();//折线颜色集合
 
+    int DisplayIndex = 0;
+    private DrawerLayout drawerLayout;
+
     private ViewPager mViewPager;
 
     private LinearLayout mLayout;
@@ -107,8 +113,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     private boolean myAcli = false;
 
     private DrawerLayout draw;
-
-    private TextView tvRecord;
 
     private TextView tvID, tvCell, tvIDName;
 
@@ -132,22 +136,12 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             Log.d(DeviceControlActivity.class.getCanonicalName(), "onServiceConnected");
 
             // update UI now
-            if (mService.isRecording()) {
-                tvRecord.setText(R.string.menu_stop);
-            } else {
-                tvRecord.setText(R.string.Record);
-            }
-
             if (mService.isConnected()) {
-                DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
-                DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
-                tvRecord.setEnabled(true);
-                tvRecord.setAlpha(1.0f);
+                mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_disconnect);
+                invalidateOptionsMenu();
             } else {
-                DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
-                DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
-                tvRecord.setEnabled(false);
-                tvRecord.setAlpha(0.6f);
+                mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
+                invalidateOptionsMenu();
             }
         }
 
@@ -156,8 +150,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
             mService = null;
         }
     };
-
-    int DisplayIndex = 0;
+    private NavigationView mNavView;
 
     private void SetCurrentTab(View v) {
         btnAcc.setAlpha(0.6f);
@@ -434,13 +427,11 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            window.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        }
         setContentView(R.layout.gatt_services_characteristics);
-        initDraw();
+
+        configureNavigationDrawer();
+        configureToolbar();
+
         // viewpager  linearlayout
         mViewPager = (ViewPager) findViewById(R.id.mViewPager);
         mLayout = (LinearLayout) findViewById(R.id.mLayout);
@@ -462,38 +453,16 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         btnPort.setOnClickListener(this);
         btnQuater = (Button) findViewById(R.id.btnQuater);
         btnQuater.setOnClickListener(this);
-        TextView textView = (TextView) findViewById(R.id.tv_set);
-        textView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                draw.openDrawer(Gravity.LEFT);
-            }
-        });
+
         lineChart = (LineChart) findViewById(R.id.lineChart);
         initChart();
         tvX = (TextView) findViewById(R.id.tvX);
         tvY = (TextView) findViewById(R.id.tvY);
         tvZ = (TextView) findViewById(R.id.tvZ);
         tvAll = (TextView) findViewById(R.id.tvAll);
-        tvRecord = (TextView) findViewById(R.id.tv_record);
         tvCell = (TextView) findViewById(R.id.tv_cell);
         tvID = (TextView) findViewById(R.id.tv_id);
         tvIDName = (TextView) findViewById(R.id.tv_nameId);
-
-        findViewById(R.id.tv_mark).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mService != null)
-                    mService.addMark();
-            }
-        });
-
-        findViewById(R.id.tv_chart).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
-            }
-        });
 
         onClick(findViewById(R.id.btnAngle));
 
@@ -519,40 +488,6 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                     }
                 });
                 dialog.show(getSupportFragmentManager());
-            }
-        });
-
-        //记录
-        tvRecord.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mService == null || !mService.isConnected())
-                    return;
-                if (!mService.isRecording()) {
-                    tvRecord.setText(getString(R.string.menu_stop));
-                } else {
-                    tvRecord.setText(getString(R.string.Record));
-                    new AlertDialog.Builder(DeviceControlActivity.this)
-                            .setTitle(getString(R.string.hint))
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setMessage(getString(R.string.data_record) + mService.getPath().toString() + "\n" + getString(R.string.open_file))
-                            .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface arg0, int arg1) {
-                                    Uri uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".fileprovider",
-                                            mService.getPath());
-                                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                                    intent.setData(uri);
-                                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                                    startActivity(intent);
-                                }
-                            })
-                            .setNegativeButton(getString(R.string.Cancel), null)
-                            .show();
-
-                }
-
-                mService.toggleRecording();
             }
         });
 
@@ -752,11 +687,10 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 @Override
                 public void run() {
                     DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
-                    DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.VISIBLE);
-                    tvRecord.setEnabled(true);
-                    tvRecord.setAlpha(1.0f);
+                    DeviceControlActivity.this.findViewById(R.id.action_connect).setVisibility(View.VISIBLE);
                     Toast.makeText(DeviceControlActivity.this, R.string.connected, Toast.LENGTH_SHORT).show();
                     findViewById(R.id.spinner).setVisibility(View.GONE);
+                    invalidateOptionsMenu();
                 }
             });
         }
@@ -767,16 +701,28 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
                 @Override
                 public void run() {
                     DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
-                    DeviceControlActivity.this.findViewById(R.id.tv_disconnect).setVisibility(View.GONE);
-                    tvRecord.setEnabled(false);
-                    tvRecord.setAlpha(0.6f);    // grayed out
+                    DeviceControlActivity.this.findViewById(R.id.action_connect).setVisibility(View.GONE);
                     Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();
                     findViewById(R.id.spinner).setVisibility(View.GONE);
+                    invalidateOptionsMenu();
                 }
             });
         }
     };
 
+    private void configureToolbar() {
+        Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        actionbar.setHomeAsUpIndicator(R.drawable.ic_drawer);
+        actionbar.setDisplayHomeAsUpEnabled(true);
+    }
+
+    private void configureNavigationDrawer() {
+        draw = (DrawerLayout) findViewById(R.id.drawerLayout);
+        mNavView = (NavigationView) findViewById(R.id.nv_layout);
+        mNavView.setNavigationItemSelectedListener(this);
+    }
 
     private void initDraw() {
         draw = (DrawerLayout) findViewById(R.id.drawerLayout);
@@ -792,7 +738,7 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         TextView rete = (TextView) findViewById(R.id.tv_rate);
         TextView resume = (TextView) findViewById(R.id.tv_resume);
         TextView rename = (TextView) findViewById(R.id.tv_rename);
-        TextView disconnect = (TextView) findViewById(R.id.tv_disconnect);
+        TextView disconnect = (TextView) findViewById(R.id.action_connect);
         //加计校准
         acli.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1091,6 +1037,14 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         mRefreshSensor.start();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.act_device_control, menu);
+        return true;
+    }
+
+
     private void startSensorService() {
         Log.d(TAG, "Starting service");
         Intent serviceIntent = new Intent(this, BluetoothLeService.class);
@@ -1136,9 +1090,61 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
         } else if (i == android.R.id.home) {
             onBackPressed();
             return true;
+        } else if (i == R.id.action_record) {
+            if (mService == null || !mService.isConnected())
+                return true;
+            if (!mService.isRecording()) {
+            } else {
+                new AlertDialog.Builder(DeviceControlActivity.this)
+                        .setTitle(getString(R.string.hint))
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setMessage(getString(R.string.data_record) + mService.getPath().toString() + "\n" + getString(R.string.open_file))
+                        .setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface arg0, int arg1) {
+                                Uri uri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".fileprovider",
+                                        mService.getPath());
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                intent.setData(uri);
+                                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                startActivity(intent);
+                            }
+                        })
+                        .setNegativeButton(getString(R.string.Cancel), null)
+                        .show();
+            }
+
+            mService.toggleRecording();
+
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem recordingItem = menu.findItem(R.id.action_record);
+
+        if (mService.isConnected()) {
+            recordingItem.setEnabled(true);
+            recordingItem.getIcon().setAlpha(255);
+        } else {
+            // disabled
+            recordingItem.setEnabled(false);
+            recordingItem.getIcon().setAlpha(130);
+        }
+
+        if (mService.isRecording()) {
+            recordingItem.setIcon(R.drawable.ic_stop);
+            recordingItem.setTitle(R.string.menu_stop);
+        } else {
+            recordingItem.setIcon(R.drawable.ic_record);
+            recordingItem.setTitle(R.string.Record);
+        }
+
+        return true;
+    }
+
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -1156,4 +1162,19 @@ public class DeviceControlActivity extends FragmentActivity implements View.OnCl
     }
 
 
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+        Fragment f = null;
+        int itemId = menuItem.getItemId();
+
+        if (itemId == R.id.action_mark) {
+            if (mService != null)
+                mService.addMark();
+        } else if (itemId == R.id.action_chart) {
+            startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
+        }
+
+        drawerLayout.closeDrawers();
+        return true;
+    }
 }

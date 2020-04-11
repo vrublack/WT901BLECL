@@ -73,4 +73,6 @@
     <string name="connect_failed">Failed to connect</string>
     <string name="recording_waiting_reconnect">Recording, waiting for reconnect</string>
     <string name="pick_use">Select sensors to use</string>
+    <string name="refresh">Refresh</string>
+    <string name="okay">Okay</string>
 </resources>

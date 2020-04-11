@@ -15,7 +15,7 @@
         android:background="@color/accent_1" />
 
     <TextView
-        android:id="@+id/tv_disconnect"
+        android:id="@+id/action_connect"
         style="@style/mTextView"
         android:text="@string/disconnect" />
 
