@@ -941,6 +941,8 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
 
             mService.toggleRecording();
 
+            invalidateOptionsMenu();
+
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -950,6 +952,14 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
     public boolean onPrepareOptionsMenu(Menu menu) {
         MenuItem recordingItem = menu.findItem(R.id.action_record);
 
+        if (mService != null && mService.isRecording()) {
+            recordingItem.setIcon(R.drawable.ic_stop);
+            recordingItem.setTitle(R.string.menu_stop);
+        } else {
+            recordingItem.setIcon(R.drawable.ic_record);
+            recordingItem.setTitle(R.string.Record);
+        }
+
         if (mService != null && mService.isAnyConnected()) {
             recordingItem.setEnabled(true);
             recordingItem.getIcon().setAlpha(255);
@@ -957,14 +967,6 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             // disabled
             recordingItem.setEnabled(false);
             recordingItem.getIcon().setAlpha(130);
-        }
-
-        if (mService != null && mService.isRecording()) {
-            recordingItem.setIcon(R.drawable.ic_stop);
-            recordingItem.setTitle(R.string.menu_stop);
-        } else {
-            recordingItem.setIcon(R.drawable.ic_record);
-            recordingItem.setTitle(R.string.Record);
         }
 
         return true;
