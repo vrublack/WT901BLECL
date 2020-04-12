@@ -712,7 +712,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         actionbar.setDisplayShowTitleEnabled(false);
     }
 
-    private void refreshDevicesSpinner() {
+    private void refreshDevicesDropdown() {
         Spinner spinnerNav = findViewById(R.id.spinner_nav);
         final Set<Pair<String, String>> usedDevices = getUsedDeviceNames();
         final ArrayList<Pair<String, String>> spinnerArray = new ArrayList<>(usedDevices);
@@ -820,7 +820,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             startSensorService();
         }
 
-        refreshDevicesSpinner();
+        refreshDevicesDropdown();
 
         // maybe the service was running in the background but the activity was destroyed
         bindService(new Intent(this, BluetoothLeService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -1073,7 +1073,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                                 String value= editText.getText().toString();
                                 if (value.length()>10) value = value.substring(0,9);
                                 if (value != null && !value.equals("")) {
-                                    String name = "WTWT" + value + "\r\n";
+                                    String name = "WIT-" + value + "\r\n";
                                     Log.e("------", "WT====" + name);
                                     mService.writeByes(mCurrentDevice, name.getBytes());
                                     Toast.makeText(DeviceControlActivity.this, R.string.Reset, Toast.LENGTH_SHORT).show();
