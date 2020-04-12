@@ -47,7 +47,6 @@ import com.witsensor.WTBLE901.fragment.CompassFragment;
 import com.witsensor.WTBLE901.fragment.FragmentAdapter;
 import com.witsensor.WTBLE901.fragment.GraphFragment;
 import com.witsensor.WTBLE901.view.ChartActivity;
-import com.witsensor.WTBLE901.view.DeviceNameDialog;
 import com.github.mikephil.charting.charts.LineChart;
 
 import org.greenrobot.eventbus.EventBus;
@@ -120,7 +119,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
 
     private DrawerLayout draw;
 
-    private TextView tvID, tvCell, tvIDName;
+    private TextView tvCell, tvStatus, tvAddress;
 
     private Thread mRefreshSensor;
 
@@ -141,7 +140,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
 
             Log.d(DeviceControlActivity.class.getCanonicalName(), "onServiceConnected");
 
-            refreshSidebar();
+            refreshStatus();
         }
 
         @Override
@@ -422,35 +421,10 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         tvZ = (TextView) findViewById(R.id.tvZ);
         tvAll = (TextView) findViewById(R.id.tvAll);
         tvCell = (TextView) findViewById(R.id.tv_cell);
-        tvID = (TextView) findViewById(R.id.tv_id);
-        tvIDName = (TextView) findViewById(R.id.tv_nameId);
+        tvStatus = (TextView) findViewById(R.id.tv_status);
+        tvAddress = (TextView) findViewById(R.id.tv_address);
 
         onClick(findViewById(R.id.btnAngle));
-
-
-        tvID.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                DeviceNameDialog dialog = DeviceNameDialog.newIntence();
-                dialog.setPsDialogCallBack(new DeviceNameDialog.PsDialogCallBack() {
-                    @Override
-                    public void sure(String value) {
-                        short id = Short.valueOf(value);
-                        byte l = (byte) (id & 0xff);
-                        byte h = (byte) (id << 8 & 0xff);
-                        byte[] bb = new byte[]{(byte) 0xff, (byte) 0xaa, 0x69, l, h};
-                        mService.writeByes(mCurrentDevice, bb);
-                        mService.writeByes(mCurrentDevice, BluetoothLeService.mDeviceID);
-                    }
-
-                    @Override
-                    public void abolish() {
-
-                    }
-                });
-                dialog.show(getSupportFragmentManager());
-            }
-        });
 
         if (!BluetoothLeService.isRunning) {
             Set<String> usedDevices = getUsedDevices();
@@ -478,12 +452,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             String[] comps = name.split(" - ");
             String label = comps[0];
             String address = comps[1];
-            if (label.equals("null")) {
-                formattedNames.add(new Pair<>(address, label));
-            } else {
-                // only show the first few characters of the address
-                formattedNames.add(new Pair<>(address, label + " - " + address.substring(0, Math.min(3, address.length()))));
-            }
+            formattedNames.add(new Pair<>(address, label));
         }
         return formattedNames;
     }
@@ -657,15 +626,6 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                     if (data.getBattery() >= 850) {
                         tvCell.setBackground(getResources().getDrawable(R.drawable.cell5));
                     }
-
-                    if (data.getDeviceName() != null) {
-                        if (data.getDeviceName().length() == 0) {
-                            tvIDName.setVisibility(View.INVISIBLE);
-                            tvID.setVisibility(View.INVISIBLE);
-                        } else {
-                            tvID.setText(data.getDeviceName());
-                        }
-                    }
                 }
             });
         }
@@ -680,8 +640,8 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 public void run() {
                     mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_disconnect);
                     Toast.makeText(DeviceControlActivity.this, R.string.connected, Toast.LENGTH_SHORT).show();
-                    //findViewById(R.id.spinner).setVisibility(View.GONE);
                     invalidateOptionsMenu();
+                    refreshStatus();
                 }
             });
         }
@@ -696,8 +656,8 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 public void run() {
                     mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
                     Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();
-                    //findViewById(R.id.spinner).setVisibility(View.GONE);
                     invalidateOptionsMenu();
+                    refreshStatus();
                 }
             });
         }
@@ -733,7 +693,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mCurrentDevice = spinnerArray.get(i).first;
                 switchToTab(R.id.btnAcc);
-                refreshSidebar();
+                refreshStatus();
             }
 
             @Override
@@ -743,12 +703,16 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         });
     }
 
-    private void refreshSidebar() {
+    private void refreshStatus() {
         if (mService != null && mService.isConnected(mCurrentDevice)) {
             mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_disconnect);
+            tvStatus.setText(R.string.connected);
         } else {
             mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
+            tvStatus.setText(R.string.disconnected);
         }
+
+        tvAddress.setText(mCurrentDevice);
     }
 
     private void configureNavigationDrawer() {
@@ -1097,17 +1061,12 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                     // disconnect
                     if (mService != null) {
                         mService.disconnect(mCurrentDevice);
-                        // findViewById(R.id.spinner).setVisibility(View.VISIBLE);
-                        mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
                     }
                 } else {
                     // connect
                     Set<String> usedDevices = getUsedDevices();
                     if (mService != null) {
-                        if (mService.connectAll(usedDevices)) {
-                            // findViewById(R.id.spinner).setVisibility(View.VISIBLE);
-                            mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.disconnect);
-                        } else {
+                        if (!mService.connectAll(usedDevices)) {
                             Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
                         }
                     }

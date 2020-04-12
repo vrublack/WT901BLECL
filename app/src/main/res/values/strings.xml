@@ -78,4 +78,7 @@
     <string name="recording_status">Recording - %d out of %d connected</string>
     <string name="not_recording_status">%d out of %d connected</string>
     <string name="error">An Error occurred</string>
+    <string name="status_">Status:</string>
+    <string name="battery_">Battery:</string>
+    <string name="address_">Address:</string>
 </resources>
