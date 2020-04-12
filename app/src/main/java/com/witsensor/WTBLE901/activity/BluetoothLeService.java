@@ -52,6 +52,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.witsensor.WTBLE901.R;
@@ -378,6 +379,14 @@ public class BluetoothLeService extends Service {
 
         mBluetoothDeviceAddress = address;
         return true;
+    }
+
+    public boolean connectAll(final Set<String> addresses) {
+        boolean success = false;
+        for (String address : addresses) {
+            success = connect(address) || success;
+        }
+        return success;
     }
 
     public void disconnect() {

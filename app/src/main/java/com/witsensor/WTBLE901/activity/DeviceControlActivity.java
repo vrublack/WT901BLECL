@@ -2,12 +2,14 @@ package com.witsensor.WTBLE901.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.database.DataSetObserver;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -32,9 +34,13 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,7 +58,10 @@ import com.github.mikephil.charting.charts.LineChart;
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.witsensor.WTBLE901.R;
 
@@ -64,7 +73,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
     private static final int REQUEST_CONNECT_DEVICE = 1;
 
-    private String mToConnectTo;
+    private Set<String> mToConnectTo;
     private BluetoothLeService mService;
     private Button btnAcc, btnGyro, btnAngle, btnMag, btnPressure, btnPort, btnQuater;
     private TextView tvX, tvY, tvZ, tvAll;
@@ -101,7 +110,6 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
     private List<Integer> qColour = new ArrayList<>();//折线颜色集合
 
     int DisplayIndex = 0;
-    private DrawerLayout drawerLayout;
 
     private ViewPager mViewPager;
 
@@ -124,7 +132,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             mService = ((BluetoothLeService.LocalBinder) service).getService();
 
             if (mToConnectTo != null) {
-                if (mService.connect(mToConnectTo)) {
+                if (mService.connectAll(mToConnectTo)) {
                     mToConnectTo = null;
                 } else {
                     Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
@@ -492,28 +500,48 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         });
 
         if (!BluetoothLeService.isRunning) {
-            if (getDefaultDevice() == null) {
+            Set<String> usedDevices = getUsedDevices();
+            if (usedDevices.isEmpty()) {
                 try {
                     Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
                     startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
                 } catch (Exception err) {
                 }
             } else {
-                mToConnectTo = getDefaultDevice();
+                mToConnectTo = usedDevices;
             }
         }
 
     }
 
+    private Set<String> getUsedDevices() {
+        return getSharedPreferences("General", Activity.MODE_PRIVATE).getStringSet("Using-devices", new HashSet<String>());
+    }
+
+    private Set<String> getUsedDeviceNames() {
+        Set<String> names = getSharedPreferences("General", Activity.MODE_PRIVATE).getStringSet("Using-devices-names", new HashSet<String>());
+        Set<String> formattedNames = new HashSet<>();
+        for (String name : names) {
+            String[] comps = name.split(" - ");
+            String label = comps[0];
+            String address = comps[1];
+            if (label.equals("null")) {
+                formattedNames.add(address);
+            } else {
+                // only show the first few characters of the address
+                formattedNames.add(label + " - " + address.substring(0, Math.min(3, address.length())));
+            }
+        }
+        return formattedNames;
+    }
+
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         switch (requestCode) {
-            case REQUEST_CONNECT_DEVICE:// When DeviceListActivity returns with a device to connect
+            case REQUEST_CONNECT_DEVICE: // When DeviceListActivity returns with a device to connect
                 if (intent != null) {
-                    String mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
-                    mToConnectTo = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
-                    setDefaultDevice(mToConnectTo);
+                    mToConnectTo = getUsedDevices();
                     if (resultCode == Activity.RESULT_OK && mService != null) {
-                        if (mService.connect(mToConnectTo)) {
+                        if (mService.connectAll(mToConnectTo)) {
                             mToConnectTo = null;
                         } else {
                             Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
@@ -686,10 +714,9 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.GONE);
-                    DeviceControlActivity.this.findViewById(R.id.action_connect).setVisibility(View.VISIBLE);
+                    mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_disconnect);
                     Toast.makeText(DeviceControlActivity.this, R.string.connected, Toast.LENGTH_SHORT).show();
-                    findViewById(R.id.spinner).setVisibility(View.GONE);
+                    //findViewById(R.id.spinner).setVisibility(View.GONE);
                     invalidateOptionsMenu();
                 }
             });
@@ -700,10 +727,9 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    DeviceControlActivity.this.findViewById(R.id.tv_connect).setVisibility(View.VISIBLE);
-                    DeviceControlActivity.this.findViewById(R.id.action_connect).setVisibility(View.GONE);
+                    mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
                     Toast.makeText(DeviceControlActivity.this, R.string.disconnected, Toast.LENGTH_SHORT).show();
-                    findViewById(R.id.spinner).setVisibility(View.GONE);
+                    //findViewById(R.id.spinner).setVisibility(View.GONE);
                     invalidateOptionsMenu();
                 }
             });
@@ -716,213 +742,22 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         ActionBar actionbar = getSupportActionBar();
         actionbar.setHomeAsUpIndicator(R.drawable.ic_drawer);
         actionbar.setDisplayHomeAsUpEnabled(true);
+        actionbar.setDisplayShowTitleEnabled(false);
+    }
+
+    private void refreshDevicesSpinner() {
+        Spinner spinnerNav = findViewById(R.id.spinner_nav);
+        final Set<String> usedDevices = getUsedDeviceNames();
+        ArrayList<String> spinnerArray = new ArrayList<>(usedDevices);
+        Collections.sort(spinnerArray);
+        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, R.layout.device_spinner_item, spinnerArray);
+        spinnerNav.setAdapter(spinnerArrayAdapter);
     }
 
     private void configureNavigationDrawer() {
         draw = (DrawerLayout) findViewById(R.id.drawerLayout);
         mNavView = (NavigationView) findViewById(R.id.nv_layout);
         mNavView.setNavigationItemSelectedListener(this);
-    }
-
-    private void initDraw() {
-        draw = (DrawerLayout) findViewById(R.id.drawerLayout);
-        NavigationView nv = (NavigationView) findViewById(R.id.nv_layout);
-        final TextView acli = (TextView) findViewById(R.id.tv_acli);
-        TextView acli_l = (TextView) findViewById(R.id.tv_cali_l);
-        TextView acli_r = (TextView) findViewById(R.id.tv_cali_r);
-        final TextView magacli = (TextView) findViewById(R.id.tv_magcali);
-        TextView d0 = (TextView) findViewById(R.id.tv_d0);
-        TextView d1 = (TextView) findViewById(R.id.tv_d1);
-        TextView d2 = (TextView) findViewById(R.id.tv_d2);
-        TextView d3 = (TextView) findViewById(R.id.tv_d3);
-        TextView rete = (TextView) findViewById(R.id.tv_rate);
-        TextView resume = (TextView) findViewById(R.id.tv_resume);
-        TextView rename = (TextView) findViewById(R.id.tv_rename);
-        TextView disconnect = (TextView) findViewById(R.id.action_connect);
-        //加计校准
-        acli.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (myAcli == false) {
-                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
-                    acli.setText(R.string.Finish);
-                    myAcli = true;
-                } else {
-                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
-                    acli.setText(R.string.AccCali);
-                    myAcli = false;
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
-                        }
-                    }, 20);
-                }
-            }
-        });
-        //加计校准L
-        acli_l.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
-            }
-        });
-        //加计校准R
-        acli_r.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
-            }
-        });
-
-        //磁场校准
-        magacli.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (bMagCali == false) {
-                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
-                    magacli.setText(R.string.Finish);
-                    bMagCali = true;
-                } else {
-                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
-                    magacli.setText(R.string.MagCali);
-                    bMagCali = false;
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
-                            draw.closeDrawer(Gravity.LEFT);
-                        }
-                    }, 100);
-                }
-            }
-        });
-
-        //D0
-        d0.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SetPortMode(0);
-                draw.closeDrawer(Gravity.LEFT);
-            }
-        });
-
-        //D1
-        d1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SetPortMode(1);
-                draw.closeDrawer(Gravity.LEFT);
-            }
-        });
-
-        //D2
-        d2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SetPortMode(2);
-                draw.closeDrawer(Gravity.LEFT);
-            }
-        });
-
-        //D3
-        d3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SetPortMode(3);
-                draw.closeDrawer(Gravity.LEFT);
-            }
-        });
-
-        //速率
-        rete.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Rate();
-                draw.closeDrawer(Gravity.LEFT);
-            }
-        });
-        //恢复
-        resume.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
-            }
-        });
-        rename.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final EditText editText = new EditText(DeviceControlActivity.this);
-                AlertDialog.Builder inputDialog =
-                        new AlertDialog.Builder(DeviceControlActivity.this);
-                inputDialog.setTitle(R.string.EnterNewName).setView(editText);
-                inputDialog.setPositiveButton(R.string.OK,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                                String value= editText.getText().toString();
-                                if (value.length()>10) value = value.substring(0,9);
-                                if (value != null && !value.equals("")) {
-                                    String name = "WTWT" + value + "\r\n";
-                                    Log.e("------", "WT====" + name);
-                                    mService.writeByes(name.getBytes());
-                                    Toast.makeText(DeviceControlActivity.this, R.string.Reset, Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(DeviceControlActivity.this, R.string.EnterName, Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                            }
-                        });
-                inputDialog.setNegativeButton(R.string.Cancel,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                               Toast.makeText(DeviceControlActivity.this,
-                                       R.string.Cancel,
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        }).show();
-            }
-        });
-
-        disconnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mService != null) {
-                    mService.disconnect();
-                    findViewById(R.id.spinner).setVisibility(View.VISIBLE);
-                    view.setVisibility(View.GONE);
-                }
-            }
-        });
-
-        findViewById(R.id.tv_connect_other).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mService != null)
-                    mService.disconnect();
-                setDefaultDevice(null);
-                Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-            }
-        });
-
-        findViewById(R.id.tv_connect).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String defaultDevice = getDefaultDevice();
-                if (mService != null && defaultDevice != null) {
-                    if (mService.connect(defaultDevice)) {
-                        findViewById(R.id.spinner).setVisibility(View.VISIBLE);
-                        view.setVisibility(View.GONE);
-                    } else {
-                        Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        });
-
     }
 
     private void initChart() {
@@ -979,26 +814,16 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
 
     }
 
-    @Nullable
-    private String getDefaultDevice() {
-        return getSharedPreferences("Device", Activity.MODE_PRIVATE).getString("defaultDevice", null);
-    }
-
-    private void setDefaultDevice(String address) {
-        SharedPreferences mySharedPreferences = getSharedPreferences("Device", Activity.MODE_PRIVATE);
-        SharedPreferences.Editor editor = mySharedPreferences.edit();
-        editor.putString("defaultDevice", address);
-        editor.commit();
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
 
         if (!BluetoothLeService.isRunning) {
-            mToConnectTo = getDefaultDevice();
+            mToConnectTo = getUsedDevices();
             startSensorService();
         }
+
+        refreshDevicesSpinner();
 
         // maybe the service was running in the background but the activity was destroyed
         bindService(new Intent(this, BluetoothLeService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -1167,14 +992,134 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         Fragment f = null;
         int itemId = menuItem.getItemId();
 
-        if (itemId == R.id.action_mark) {
-            if (mService != null)
-                mService.addMark();
-        } else if (itemId == R.id.action_chart) {
-            startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
+        switch (itemId) {
+            case R.id.action_mark:
+                if (mService != null)
+                    mService.addMark();
+                break;
+            case R.id.action_chart:
+                startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
+                break;
+            case R.id.action_acli:
+                if (!myAcli) {
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x01, (byte) 0x00});
+                    mNavView.getMenu().findItem(R.id.action_acli).setTitle(R.string.Finish);
+                    myAcli = true;
+                } else {
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
+                    mNavView.getMenu().findItem(R.id.action_acli).setTitle(R.string.AccCali);
+                    myAcli = false;
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                        }
+                    }, 20);
+                }
+                break;
+            case R.id.action_cali_l:
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x05, (byte) 0x00});
+                break;
+            case R.id.action_cali_r:
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x06, (byte) 0x00});
+                break;
+            case R.id.action_magcali:
+                if (!bMagCali) {
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x07, (byte) 0x00});
+                    mNavView.getMenu().findItem(R.id.action_magcali).setTitle(R.string.Finish);
+                    bMagCali = true;
+                } else {
+                    mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x01, (byte) 0x00, (byte) 0x00});
+                    mNavView.getMenu().findItem(R.id.action_magcali).setTitle(R.string.MagCali);
+                    bMagCali = false;
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                        }
+                    }, 100);
+                }
+                break;
+            case R.id.action_d0:
+                SetPortMode(0);
+                break;
+            case R.id.action_d1:
+                SetPortMode(1);
+                break;
+            case R.id.action_d2:
+                SetPortMode(2);
+                break;
+            case R.id.action_d3:
+                SetPortMode(3);
+                break;
+            case R.id.action_rate:
+                Rate();
+                break;
+            case R.id.action_resume:
+                mService.writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x01, (byte) 0x00});
+                break;
+            case R.id.action_rename:
+                final EditText editText = new EditText(DeviceControlActivity.this);
+                AlertDialog.Builder inputDialog =
+                        new AlertDialog.Builder(DeviceControlActivity.this);
+                inputDialog.setTitle(R.string.EnterNewName).setView(editText);
+                inputDialog.setPositiveButton(R.string.OK,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                String value= editText.getText().toString();
+                                if (value.length()>10) value = value.substring(0,9);
+                                if (value != null && !value.equals("")) {
+                                    String name = "WTWT" + value + "\r\n";
+                                    Log.e("------", "WT====" + name);
+                                    mService.writeByes(name.getBytes());
+                                    Toast.makeText(DeviceControlActivity.this, R.string.Reset, Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(DeviceControlActivity.this, R.string.EnterName, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                inputDialog.setNegativeButton(R.string.Cancel,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Toast.makeText(DeviceControlActivity.this,
+                                        R.string.Cancel,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        }).show();
+                break;
+            case R.id.action_connect:
+                if (mService.isConnected()) {
+                    // disconnect
+                    if (mService != null) {
+                        mService.disconnect();
+                        // findViewById(R.id.spinner).setVisibility(View.VISIBLE);
+                        mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
+                    }
+                } else {
+                    // connect
+                    Set<String> usedDevices = getUsedDevices();
+                    if (mService != null) {
+                        if (mService.connectAll(usedDevices)) {
+                            // findViewById(R.id.spinner).setVisibility(View.VISIBLE);
+                            mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.disconnect);
+                        } else {
+                            Toast.makeText(DeviceControlActivity.this, getString(R.string.connect_failed), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+                break;
+            case R.id.action_connect_other:
+                if (mService != null)
+                    mService.disconnect();
+                Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                break;
         }
 
-        drawerLayout.closeDrawers();
+        draw.closeDrawers();
         return true;
     }
 }

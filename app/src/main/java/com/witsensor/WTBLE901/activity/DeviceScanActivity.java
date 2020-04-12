@@ -68,6 +68,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.witsensor.WTBLE901.R;
 
@@ -208,10 +210,14 @@ public class DeviceScanActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         scanLeDevice(false);
-
+        Set<BluetoothDevice> usingSensors = new HashSet<>();
         for (int i = 0; i < mLeDeviceListAdapter.mLeDevices.size(); i++) {
-            setUsingSensor(mLeDeviceListAdapter.mLeDevices.get(i), mLeDeviceListAdapter.mUse.get(i));
+            if (mLeDeviceListAdapter.mUse.get(i)) {
+                usingSensors.add(mLeDeviceListAdapter.mLeDevices.get(i));
+            }
         }
+
+        setUsingSensors(usingSensors);
 
         mLeDeviceListAdapter.clear();
         mLeDeviceListAdapter.notifyDataSetChanged();
@@ -243,15 +249,21 @@ public class DeviceScanActivity extends AppCompatActivity {
     }
 
     private boolean isUsingSensor(BluetoothDevice device) {
-        return mSharedPrefs.getBoolean("Using-" + device.getAddress(), false);
+        return mSharedPrefs.getStringSet("Using-devices", new HashSet<String>()).contains(device.getAddress());
     }
 
-    private void setUsingSensor(BluetoothDevice device, boolean use) {
+    private void setUsingSensors(Set<BluetoothDevice> devices) {
         SharedPreferences.Editor editor = mSharedPrefs.edit();
-        if (!use)
-            editor.remove("Using-" + device.getAddress());
-        else
-            editor.putBoolean("Using-" + device.getAddress(), true);
+        Set<String> deviceAddresses = new HashSet<>();
+        Set<String> deviceNames = new HashSet<>();
+
+        for (BluetoothDevice device : devices)
+            deviceAddresses.add(device.getAddress());
+        for (BluetoothDevice device : devices)
+            deviceNames.add(device.getName() + " - " + device.getAddress());
+
+        editor.putStringSet("Using-devices", deviceAddresses);
+        editor.putStringSet("Using-devices-names", deviceNames);
         editor.apply();
     }
 
