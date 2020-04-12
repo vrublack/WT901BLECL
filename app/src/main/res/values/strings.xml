@@ -75,4 +75,7 @@
     <string name="pick_use">Select sensors to use</string>
     <string name="refresh">Refresh</string>
     <string name="okay">Okay</string>
+    <string name="recording_status">Recording - %d out of %d connected</string>
+    <string name="not_recording_status">%d out of %d connected</string>
+    <string name="error">An Error occurred</string>
 </resources>

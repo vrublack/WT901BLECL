@@ -17,6 +17,7 @@
 package com.witsensor.WTBLE901.activity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -31,7 +32,6 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -51,7 +51,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -82,97 +84,78 @@ public class BluetoothLeService extends Service {
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
-    private String mBluetoothDeviceAddress;
-    private BluetoothGatt mBluetoothGatt;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private int mConnectionCounter; // to catch cases where an old mNotifyCharacteristic is used
+
+    // attributes for every device
+    private Map<String, BluetoothGatt> mBluetoothGatt = new HashMap<>();
+    private Map<String, BluetoothGattCharacteristic> mNotifyCharacteristic = new HashMap<>();
+    private Map<String, Boolean> mConnected = new HashMap<>();
+    private Map<String, Data> mData = new HashMap<>();
+    private Map<String, MyFile> mFile = new HashMap<>();
+
     private boolean mManuallyDisconnected;  // to catch a bug where the device somehow gets reconnected
-    private String mDeviceName;
-    private String mDeviceAddress;
     private boolean mRecording;
-    private boolean mConnected;
 
     public static byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
     public static byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
 
-    private Data mData = new Data();
-    
     private char cSetTimeCnt = 0;
 
     private UICallback mUICallback;
 
-    public void setRate(int iOutputRate) {
-        writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
-
+    public void setRateAll(int iOutputRate) {
+        for (String device : mBluetoothGatt.keySet())
+            setRate(device, iOutputRate);
     }
 
-    public void addMark() {
-        if (mRecording)
-            myFile.mark();
+    public void setRate(String device, int iOutputRate) {
+        writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
     }
 
-    public File getPath() {
-        return myFile.path;
+    public void addMark(String device) {
+        if (mRecording && mFile.containsKey(device))
+            mFile.get(device).mark();
+    }
+
+    public File getPath(String device) {
+        return mFile.containsKey(device) ? mFile.get(device).path : null;
     }
 
 
     public interface UICallback {
-        void handleBLEData(Data data);
-        void onConnected(String deviceName);
-        void onDisconnected();
+        void handleBLEData(String deviceAddress, Data data);
+        void onConnected(String deviceAddress);
+        void onDisconnected(String deviceAddress);
     }
-
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if (ACTION_GATT_CONNECTED.equals(action)) {//Device Connected
-                mConnected = true;
-                if (mRecording)
-                    passNotification(getString(R.string.recording));
-                else
-                    passNotification(getString(R.string.connected));
-                if (mUICallback != null)
-                    mUICallback.onConnected(mDeviceName);
-                writeByes(cell);
-            } else if (ACTION_GATT_DISCONNECTED.equals(action)) {//Device Disconnected
-                mConnected = false;
-                mNotifyCharacteristic = null;
-                if (mRecording)
-                    passNotification(getString(R.string.recording_waiting_reconnect));
-                else
-                    passNotification(getString(R.string.disconnected));
-                if (mUICallback != null)
-                    mUICallback.onDisconnected();
-            } else if (ACTION_DATA_AVAILABLE.equals(action)) {
-                byte[] byteIn = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
-                handleBLEData(byteIn);
-                if (mUICallback != null)
-                    mUICallback.handleBLEData(mData);
-            }
-            Log.i(TAG, "mGattUpdateReceiver: " + action);
-        }
-    };
 
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            String intentAction;
+            String device = gatt.getDevice().getAddress();
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 if (!mManuallyDisconnected) {
-                    intentAction = ACTION_GATT_CONNECTED;
-                    broadcastUpdate(intentAction);
+                    mConnected.put(device, true);
+                    if (mUICallback != null)
+                        mUICallback.onConnected(device);
+                    writeByes(device, cell);
+
+                    setRate(device, getSharedPreferences("Output", Activity.MODE_PRIVATE).getInt("Rate", 6));
+
+                    updateStatusNotification();
+
                     Log.i(TAG, "Connected to GATT server.");
                     Log.i(TAG, "Attempting to start service discovery:" +
-                            mBluetoothGatt.discoverServices());
+                            gatt.discoverServices());
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                intentAction = ACTION_GATT_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
-                broadcastUpdate(intentAction);
+                mConnected.put(device, false);
+                mNotifyCharacteristic.remove(device);
+
                 if (mUICallback != null)
-                    mUICallback.onDisconnected();
+                    mUICallback.onDisconnected(device);
+
+                updateStatusNotification();
             }
 
             Log.i(TAG, "mGattCallback: " + newState);
@@ -180,9 +163,9 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            String device = gatt.getDevice().getAddress();
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
-                BluetoothLeService.this.getWorkableGattServices(getSupportedGattServices());
+                BluetoothLeService.this.getWorkableGattServices(device, getSupportedGattServices(device));
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
@@ -190,43 +173,49 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-
             byte[] data = characteristic.getValue();
-            String sdata = "";
-//            for (int i = 0; i < data.length; i++) {
-//                sdata = sdata + String.format("%02x", (0xff & data[i]));
-//            }
-//            Log.e("--", "onCharacteristicRead = " + sdata);
+            String device = gatt.getDevice().getAddress();
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "--onCharacteristicRead called--");
-                byte[] sucString = characteristic.getValue();
-                String string = new String(sucString);
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+
+                handleBLEData(device, data);
+                if (mUICallback != null)
+                    mUICallback.handleBLEData(device, mData.get(device));
             }
-
-
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            Log.i(TAG, "onCharacteristicChanged called");
             byte[] data = characteristic.getValue();
-
-            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            String device = gatt.getDevice().getAddress();
+            handleBLEData(device, data);
+            if (mUICallback != null)
+                mUICallback.handleBLEData(device, mData.get(device));
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            byte[] data = characteristic.getValue();
-//            String sdata = "";
-//            for (int i = 0; i < data.length; i++) {
-//                sdata = sdata + String.format("%02x", (0xff & data[i]));
-//            }
-//            Log.e("--", "onCharacteristicWrite = " + sdata);
+            Log.i(TAG, "onCharacteristicWrite");
         }
     };
 
+    private void updateStatusNotification() {
+        int connected = 0;
+
+        for (boolean isConnected : mConnected.values()) {
+            if (isConnected)
+                connected++;
+        }
+
+        if (mRecording)
+            passNotification(String.format(getString(R.string.recording_status), connected, mConnected.size()));
+        else
+            passNotification(String.format(getString(R.string.not_recording_status), connected, mConnected.size()));
+    }
+
     @SuppressLint("DefaultLocale")
-    public void handleBLEData(byte[] packBuffer) {
+    private void handleBLEData(String device, byte[] packBuffer) {
         StringBuilder sdata = new StringBuilder();
         for (byte aPackBuffer : packBuffer) {
             sdata.append(String.format("%02x", (0xff & aPackBuffer)));
@@ -234,46 +223,45 @@ public class BluetoothLeService extends Service {
 
         String formatted;
         if (packBuffer.length == 20) {
-            formatted = mData.update(packBuffer);
+            if (!mData.containsKey(device))
+                mData.put(device, new Data());
+            formatted = mData.get(device).update(packBuffer);
             if (mRecording && formatted != null) {
+                if (!mFile.containsKey(device))
+                    createNewFile(device);
                 try {
-                    myFile.write(formatted);
+                    mFile.get(device).write(formatted);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         } else {
-            mData = Data.dummyData();
+            mData.put(device, Data.dummyData());
         }
 
-        updateTime();
+        updateTime(device);
     }
 
-    public void updateTime() {
+    public void updateTime(String device) {
+        Calendar t = mData.get(device).getTime();
         if (cSetTimeCnt < 4) {
             switch (cSetTimeCnt) {
                 case 0:
-                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x30, (byte) mData.getTime().get(Calendar.MONTH), (byte) (mData.getTime().get(Calendar.YEAR) - 2000)});
+                    writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x30, (byte) t.get(Calendar.MONTH), (byte) (t.get(Calendar.YEAR) - 2000)});
                     break;
                 case 1:
-                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x31, (byte) mData.getTime().get(Calendar.HOUR_OF_DAY), (byte) mData.getTime().get(Calendar.DAY_OF_MONTH)});
+                    writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x31, (byte) t.get(Calendar.HOUR_OF_DAY), (byte) t.get(Calendar.DAY_OF_MONTH)});
                     break;
                 case 2:
-                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x32, (byte) mData.getTime().get(Calendar.SECOND), (byte) mData.getTime().get(Calendar.MINUTE)});
+                    writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x32, (byte) t.get(Calendar.SECOND), (byte) t.get(Calendar.MINUTE)});
                     break;
                 case 3:
-                    writeByes(new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
+                    writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, (byte) 0x00});
                     break;
             }
             cSetTimeCnt++;
         }
 
-    }
-
-
-    private void broadcastUpdate(final String action) {
-        final Intent intent = new Intent(action);
-        sendBroadcast(intent);
     }
 
 
@@ -285,29 +273,10 @@ public class BluetoothLeService extends Service {
         else fAngleRef = 0;
     }
 
-    ;
-
-    public boolean getRssiVal() {
-        if (mBluetoothGatt == null)
+    public boolean getRssiVal(String device) {
+        if (mBluetoothGatt.get(device) == null)
             return false;
-        return mBluetoothGatt.readRemoteRssi();
-    }
-
-    private void broadcastUpdate(final String action, final BluetoothGattCharacteristic characteristic) {
-        final Intent intent = new Intent(action);
-        final byte[] packBuffer = characteristic.getValue();
-        intent.putExtra(EXTRA_DATA, packBuffer);
-        sendBroadcast(intent);
-    }
-
-
-    private static IntentFilter makeGattUpdateIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        return intentFilter;
+        return mBluetoothGatt.get(device).readRemoteRssi();
     }
 
 
@@ -325,9 +294,8 @@ public class BluetoothLeService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        disconnect();
+        disconnectAll();
         removeNotification();
-        unregisterReceiver(mGattUpdateReceiver);
         isRunning = false;
     }
 
@@ -348,8 +316,6 @@ public class BluetoothLeService extends Service {
             return false;
         }
 
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-
         return true;
     }
 
@@ -359,25 +325,23 @@ public class BluetoothLeService extends Service {
             return false;
         }
 
+        mConnected.put(address, false); // for now, will be changed to true if it connects successfully
+
         mManuallyDisconnected = false;
 
-        if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
-                && mBluetoothGatt != null) {
+        if (mBluetoothGatt.get(address) != null) {
             Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
-            if (!mBluetoothGatt.connect()) {
-                return false;
-            }
+            return mBluetoothGatt.get(address).connect();
         } else {
             final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
             if (device == null) {
                 Log.w(TAG, "Device not found.  Unable to connect.");
                 return false;
             }
-            mBluetoothGatt = device.connectGatt(this, true, mGattCallback);
+            mBluetoothGatt.put(address, device.connectGatt(this, true, mGattCallback));
             Log.d(TAG, "Trying to create acc new connection.");
         }
 
-        mBluetoothDeviceAddress = address;
         return true;
     }
 
@@ -389,23 +353,21 @@ public class BluetoothLeService extends Service {
         return success;
     }
 
-    public void disconnect() {
-        if (!mConnected)
+    public void disconnect(String device) {
+        if (!mConnected.get(device))
             return;
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+        if (mBluetoothAdapter == null || mBluetoothGatt.get(device) == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
         mManuallyDisconnected = true;
-        mBluetoothGatt.disconnect();
-        mConnected = false;
-        if (mRecording) {
-            try {
-                myFile.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            mRecording = false;
+        mBluetoothGatt.get(device).disconnect();
+        mConnected.put(device, false);
+    }
+
+    public void disconnectAll() {
+        for (String address : mConnected.keySet()) {
+             disconnect(address);
         }
     }
 
@@ -457,56 +419,56 @@ public class BluetoothLeService extends Service {
         notificationManager.cancel(NOTIFICATION_ID);
     }
 
-    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+    public void readCharacteristic(String device, BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothAdapter == null || mBluetoothGatt.get(device) == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.readCharacteristic(characteristic);
+        mBluetoothGatt.get(device).readCharacteristic(characteristic);
     }
 
-    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic, boolean enabled) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+    public void setCharacteristicNotification(String device, BluetoothGattCharacteristic characteristic, boolean enabled) {
+        if (mBluetoothAdapter == null || mBluetoothGatt.get(device) == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+        mBluetoothGatt.get(device).setCharacteristicNotification(characteristic, enabled);
     }
 
-    public void writeCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+    public void writeCharacteristic(String device, BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothAdapter == null || mBluetoothGatt.get(device) == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.writeCharacteristic(characteristic);
+        mBluetoothGatt.get(device).writeCharacteristic(characteristic);
     }
 
-    public List<BluetoothGattService> getSupportedGattServices() {
-        if (mBluetoothGatt == null) return null;
-        return mBluetoothGatt.getServices();
+    public List<BluetoothGattService> getSupportedGattServices(String device) {
+        if (mBluetoothGatt.get(device) == null) return null;
+        return mBluetoothGatt.get(device).getServices();
     }
 
-    public boolean writeByes(byte[] bytes) {
-        if (mNotifyCharacteristic != null) {
+    public boolean writeByes(String device, byte[] bytes) {
+        if (mNotifyCharacteristic.get(device) != null) {
             Log.d("BLE", "WriteByte");
-            mNotifyCharacteristic.setValue(bytes);
-            return mBluetoothGatt.writeCharacteristic(mNotifyCharacteristic);
+            mNotifyCharacteristic.get(device).setValue(bytes);
+            return mBluetoothGatt.get(device).writeCharacteristic(mNotifyCharacteristic.get(device));
         } else {
             Log.d("BLE", "NOCharacter");
             return false;
         }
     }
 
-    public boolean writeString(String s) {
-        if (mNotifyCharacteristic != null) {
-            mNotifyCharacteristic.setValue(s);
-            return mBluetoothGatt.writeCharacteristic(mNotifyCharacteristic);
+    public boolean writeString(String device, String s) {
+        if (mNotifyCharacteristic.get(device) != null) {
+            mNotifyCharacteristic.get(device).setValue(s);
+            return mBluetoothGatt.get(device).writeCharacteristic(mNotifyCharacteristic.get(device));
         } else {
             return false;
         }
     }
 
-    private void getWorkableGattServices(List<BluetoothGattService> gattServices) {
+    private void getWorkableGattServices(String device, List<BluetoothGattService> gattServices) {
         if (gattServices == null)
             return;
         String uuid = null;
@@ -515,20 +477,18 @@ public class BluetoothLeService extends Service {
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                 uuid = gattCharacteristic.getUuid().toString();
                 if (uuid.toLowerCase().contains("ffe9")) {//write
-                    mNotifyCharacteristic = gattCharacteristic;
-                    setCharacteristicNotification(mNotifyCharacteristic, true);
+                    mNotifyCharacteristic.put(device, gattCharacteristic);
+                    setCharacteristicNotification(device, gattCharacteristic, true);
                 }
                 if (uuid.toLowerCase().contains("ffe4")) {//Read
-                    setCharacteristicNotification(gattCharacteristic, true);
+                    setCharacteristicNotification(device, gattCharacteristic, true);
                     BluetoothGattDescriptor descriptor = gattCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    mBluetoothGatt.writeDescriptor(descriptor);
+                    mBluetoothGatt.get(device).writeDescriptor(descriptor);
                 }
             }
         }
     }
-
-    private MyFile myFile;
 
     class MyFile {
         FileOutputStream fout;
@@ -558,35 +518,38 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    private String generateFname() {
+    private String generateFname(String device) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss");
-        Date date = new Date();
-        return "Recording__" + dateFormat.format(new Date()) + ".txt";
+        return "Recording__" + dateFormat.format(new Date()) + "__" + device.replace(":", "-") + ".txt";
     }
 
     public void toggleRecording() {
-        if (!mConnected)
+        if (!isAnyConnected())
             return;
 
         if (!mRecording) {
+            mFile.clear();
             mRecording = true;
-
-            passNotification(getString(R.string.recording));
-
-            try {
-                myFile = new MyFile(new File(getExternalFilesDir(null), generateFname()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         } else {
-            passNotification(getString(R.string.connected));
-
             mRecording = false;
-            try {
-                myFile.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+
+            for (MyFile file : mFile.values()) {
+                try {
+                    file.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+        }
+
+        updateStatusNotification();
+    }
+
+    public void createNewFile(String device) {
+        try {
+            mFile.put(device, new MyFile(new File(getExternalFilesDir(null), generateFname(device))));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -594,8 +557,17 @@ public class BluetoothLeService extends Service {
         return mRecording;
     }
 
-    public boolean isConnected() {
-        return mConnected;
+    public boolean isAnyConnected() {
+        for (boolean connected : mConnected.values()) {
+            if (connected)
+                return true;
+        }
+
+        return false;
+    }
+
+    public boolean isConnected(String device) {
+        return mConnected.containsKey(device) && mConnected.get(device);
     }
 
     public void setUICallback(UICallback callback) {
