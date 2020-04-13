@@ -19,6 +19,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.FileProvider;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -882,7 +883,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             }
             return true;
         } else if (i == android.R.id.home) {
-            onBackPressed();
+            draw.openDrawer(GravityCompat.START);
             return true;
         } else if (i == R.id.action_record) {
             if (mService == null || !mService.isAnyConnected())
@@ -918,6 +919,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
 
             return true;
         }
+
         return super.onOptionsItemSelected(item);
     }
 
