@@ -67,7 +67,7 @@
     <string name="disconnect">Disconnect</string>
     <string name="not_connected">Not connected</string>
     <string name="chart">Chart</string>
-    <string name="mark">Mark</string>
+    <string name="mark">Note</string>
     <string name="connect_other">Connect to other</string>
     <string name="gyr">Gyr</string>
     <string name="connect_failed">Failed to connect</string>
@@ -81,4 +81,15 @@
     <string name="status_">Status:</string>
     <string name="battery_">Battery:</string>
     <string name="address_">Address:</string>
+    <string name="SelectNoteValue">Select note value</string>
+
+    <string-array
+        name="mark_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+    </string-array>
+
 </resources>

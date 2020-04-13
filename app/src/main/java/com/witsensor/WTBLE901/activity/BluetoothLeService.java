@@ -111,18 +111,18 @@ public class BluetoothLeService extends Service {
         writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
     }
 
-    public void addMark(String device) {
+    public void addMark(String device, String note) {
         if (mRecording && mFile.containsKey(device) && !mFile.get(device).isClosed())
-            mFile.get(device).mark();
+            mFile.get(device).mark(note);
     }
 
-    public void addMarkAll() {
+    public void addMarkAll(String note) {
         if (!mRecording)
             return;
 
         for(MyFile file : mFile.values()) {
             if (!file.isClosed())
-                file.mark();
+                file.mark(note);
         }
     }
 
@@ -521,9 +521,9 @@ public class BluetoothLeService extends Service {
             closed = true;
         }
 
-        public void mark() {
+        public void mark(String note) {
             try {
-                fout.write("mark\n".getBytes());
+                fout.write(("mark " + note + "\n").getBytes());
             } catch (IOException e) {
                 e.printStackTrace();
             }
