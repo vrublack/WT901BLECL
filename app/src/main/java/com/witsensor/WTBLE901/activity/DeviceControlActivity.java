@@ -1010,7 +1010,9 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 break;
 
             case R.id.action_chart:
-                startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
+                Intent intent = new Intent(DeviceControlActivity.this, ChartActivity.class);
+                intent.putExtra("device", mCurrentDevice);
+                startActivity(intent);
                 break;
             case R.id.action_acli:
                 if (!myAcli) {

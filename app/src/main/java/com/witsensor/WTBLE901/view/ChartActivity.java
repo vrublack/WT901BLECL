@@ -45,11 +45,13 @@ public class ChartActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chart);
 
+        String deviceAddr = getIntent().getStringExtra("device");
+
         mChart = findViewById(R.id.chart);
         mChart.setTouchEnabled(true);
         mChart.setPinchZoom(true);
 
-        final String fname = setUpCharts();
+        final String fname = setUpCharts(deviceAddr);
 
         if (fname != null) {
             new Handler().postDelayed(new Runnable() {
@@ -86,15 +88,24 @@ public class ChartActivity extends Activity {
     }
 
 
-    private String setUpCharts() {
+    private String setUpCharts(String deviceAddr) {
         File[] files = getExternalFilesDir(null).listFiles();
 
         List<Pair<Date, File>> allDates = new ArrayList<>();
         for (File f : files) {
             if (!f.getName().startsWith("Recording__"))
                 continue;
+
+            // only show data from this device
+            String name = f.getName();
+            String devicePortion = name.substring(name.lastIndexOf("__") + 2, name.indexOf(".txt")).replace("-", ":");
+            if (!devicePortion.equals(deviceAddr))
+                continue;
+
             try {
-                String datePortion = f.getName().substring(11, f.getName().length() - 4);
+                int dateStart = name.indexOf("__") + 2;
+                int dateEnd = name.lastIndexOf("__");
+                String datePortion = name.substring(dateStart, dateEnd);
                 Date date = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss").parse(datePortion);
                 allDates.add(new Pair<Date, File>(date, f));
 
@@ -102,6 +113,12 @@ public class ChartActivity extends Activity {
                 e.printStackTrace();
             }
         }
+
+        if (allDates.isEmpty()) {
+            Toast.makeText(this, "No data", Toast.LENGTH_LONG).show();
+            return null;
+        }
+
         // sort by date
         Collections.sort(allDates, new Comparator<Pair<Date, File>>() {
             @Override
