@@ -110,16 +110,11 @@ public class ChartActivity extends Activity {
             }
         });
 
-        if (allDates.size() < 2) {
-            Toast.makeText(this, "Need calibration file", Toast.LENGTH_LONG).show();
-            return null;
-        }
-
-        File calibrationFile = allDates.get(allDates.size() - 2).second;
         File dataFile = allDates.get(allDates.size() - 1).second;
 
-        List<float[]> calibAngles = getAngles(calibrationFile);
-        List<float[]> angles = getAngles(dataFile);
+        Pair<List<float[]>, float[]> ret = getAngles(dataFile);
+        List<float[]> angles = ret.first;
+        float[] calibration = ret.second;
 
         ArrayList<Entry> xValues = new ArrayList<>();
         ArrayList<Entry> yValues = new ArrayList<>();
@@ -137,35 +132,28 @@ public class ChartActivity extends Activity {
             }
         }
 
-        float calibX = 0;
-        float calibY = 0;
-        float calibZ = 0;
-        for (int i = 0; i < calibAngles.size(); i++) {
-            if (calibAngles.get(i) == null)
-                continue;
-            calibX += calibAngles.get(i)[1];
-            calibY += calibAngles.get(i)[2];
-            calibZ += calibAngles.get(i)[3];
-        }
-        calibX /= calibAngles.size();
-        calibY /= calibAngles.size();
-        calibZ /= calibAngles.size();
-
-        makeChart(xValues, yValues, zValues, calibX, calibY, calibZ, marks);
+        makeChart(xValues, yValues, zValues, calibration[0], calibration[1], calibration[2], marks);
 
         return dataFile.getName();
     }
 
-    private List<float[]> getAngles(File file) {
+    private Pair<List<float[]>, float[]> getAngles(File file) {
         List<float[]> result = new ArrayList<>();
+        float[] calibrationSum = {0, 0, 0};
+        int calibrationN = 0;
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
             float firstSeconds = -1;
+            boolean calibrating = false;
             while ((line = br.readLine()) != null) {
                 try {
                     if (line.contains("mark")) {
                         result.add(null);
+                    } else if (line.startsWith("baseline start")) {
+                        calibrating = true;
+                    }  else if (line.startsWith("baseline end")) {
+                        calibrating = false;
                     } else {
                         String[] comps = line.split(",");
                         if (!comps[0].equals("angle") || comps.length != 5)
@@ -176,20 +164,27 @@ public class ChartActivity extends Activity {
                             angleX = 360 + angleX;
                         float angleY = Float.parseFloat(comps[3]);
                         float angleZ = Float.parseFloat(comps[4]);
-                        Date date = new SimpleDateFormat("HH:mm:ss.SSS").parse(timeStr);
-                        float seconds = date.getTime() / 1000.f;
-                        if (firstSeconds == -1)
-                            firstSeconds = seconds;
 
-                        if (seconds < firstSeconds) {
-                            // fix day wrapover problem
-                            seconds = 24 * 60 * 60 - firstSeconds + seconds;
-                        }
-                        else {
-                            seconds -= firstSeconds;
-                        }
+                        if (!calibrating) {
+                            Date date = new SimpleDateFormat("HH:mm:ss.SSS").parse(timeStr);
+                            float seconds = date.getTime() / 1000.f;
+                            if (firstSeconds == -1)
+                                firstSeconds = seconds;
 
-                        result.add(new float[]{seconds, angleX, angleY, angleZ});
+                            if (seconds < firstSeconds) {
+                                // fix day wrapover problem
+                                seconds = 24 * 60 * 60 - firstSeconds + seconds;
+                            } else {
+                                seconds -= firstSeconds;
+                            }
+
+                            result.add(new float[]{seconds, angleX, angleY, angleZ});
+                        } else {
+                            calibrationSum[0] += angleX;
+                            calibrationSum[1] += angleY;
+                            calibrationSum[2] += angleZ;
+                            calibrationN++;
+                        }
                     }
                 } catch (ParseException | NumberFormatException e) {
                     e.printStackTrace();
@@ -200,7 +195,13 @@ public class ChartActivity extends Activity {
             e.printStackTrace();
         }
 
-        return result;
+        if (calibrationN != 0) {
+            calibrationSum[0] /= calibrationN;
+            calibrationSum[1] /= calibrationN;
+            calibrationSum[2] /= calibrationN;
+        }
+
+        return new Pair<>(result, calibrationSum);
     }
 
     private void makeChart(List<Entry> x, List<Entry> y, List<Entry> z, float xCalib, float yCalib, float zCalib, List<Entry> marks) {
