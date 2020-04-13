@@ -32,14 +32,18 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.RemoteInput;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.witsensor.WTBLE901.data.Data;
 
@@ -61,6 +65,8 @@ import com.witsensor.WTBLE901.R;
 
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
+
+    private static final String KEY_NOTE = "key_note";
 
     public static final String CHANNEL_ID = "SensorServiceChannel";
     private static final int NOTIFICATION_ID = 1;
@@ -167,8 +173,6 @@ public class BluetoothLeService extends Service {
 
                 updateStatusNotification();
             }
-
-            Log.i(TAG, "mGattCallback: " + newState);
         }
 
         @Override
@@ -186,8 +190,6 @@ public class BluetoothLeService extends Service {
             byte[] data = characteristic.getValue();
             String device = gatt.getDevice().getAddress();
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.i(TAG, "--onCharacteristicRead called--");
-
                 handleBLEData(device, data);
                 if (mUICallback != null)
                     mUICallback.handleBLEData(device, mData.get(device));
@@ -196,7 +198,6 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            Log.i(TAG, "onCharacteristicChanged called");
             byte[] data = characteristic.getValue();
             String device = gatt.getDevice().getAddress();
             handleBLEData(device, data);
@@ -206,7 +207,6 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            Log.i(TAG, "onCharacteristicWrite");
         }
     };
 
@@ -306,6 +306,7 @@ public class BluetoothLeService extends Service {
         super.onDestroy();
         disconnectAll();
         removeNotification();
+        unregisterReceiver(mNoteReceiver);
         isRunning = false;
     }
 
@@ -325,6 +326,10 @@ public class BluetoothLeService extends Service {
             Log.e(TAG, "Unable to obtain acc BluetoothAdapter.");
             return false;
         }
+
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_INSERT);
+        registerReceiver(mNoteReceiver, intentFilter);
 
         return true;
     }
@@ -405,16 +410,55 @@ public class BluetoothLeService extends Service {
         return START_NOT_STICKY;
     }
 
+    public class NoteReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Bundle remoteInput = RemoteInput.getResultsFromIntent(intent);
+            if (remoteInput == null) {
+                return;
+            }
+
+            addMarkAll(remoteInput.getCharSequence(KEY_NOTE).toString());
+
+            updateStatusNotification();
+        }
+    }
+
+    private NoteReceiver mNoteReceiver = new NoteReceiver();
+
     private Notification getNotification(String msg) {
         Intent notificationIntent = new Intent(this, DeviceControlActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(msg)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setContentIntent(pendingIntent).build();
+                .setContentIntent(pendingIntent);
+
+        if (mRecording) {
+            RemoteInput remoteInput = new RemoteInput.Builder(KEY_NOTE)
+                    .setLabel(getResources().getString(R.string.mark))
+                    .build();
+            Intent intent = new Intent(Intent.ACTION_INSERT);
+            PendingIntent replyPendingIntent =
+                    PendingIntent.getBroadcast(getApplicationContext(),
+                            5,
+                            intent,
+                            PendingIntent.FLAG_CANCEL_CURRENT);
+
+            NotificationCompat.Action action =
+                    new NotificationCompat.Action.Builder(R.drawable.ic_check,
+                            getString(R.string.mark), replyPendingIntent)
+                            .addRemoteInput(remoteInput)
+                            .build();
+
+            b = b.addAction(action);
+        }
+
+
+        return b.build();
     }
 
     private void passNotification(String msg) {
@@ -460,11 +504,9 @@ public class BluetoothLeService extends Service {
 
     public boolean writeByes(String device, byte[] bytes) {
         if (mNotifyCharacteristic.get(device) != null) {
-            Log.d("BLE", "WriteByte");
             mNotifyCharacteristic.get(device).setValue(bytes);
             return mBluetoothGatt.get(device).writeCharacteristic(mNotifyCharacteristic.get(device));
         } else {
-            Log.d("BLE", "NOCharacter");
             return false;
         }
     }
