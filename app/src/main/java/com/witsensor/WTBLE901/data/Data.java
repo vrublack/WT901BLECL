@@ -112,19 +112,6 @@ public class Data {
                     case 0x64:
                         battery = fData[0];
                         return String.format(Locale.US, "battery,%s,%.4f\n", getFormattedTime(), battery);
-                    case 0x68:
-                        try {
-                            String s = new String(packBuffer, "ascii");
-                            int end = s.indexOf("WT");
-                            if (end == -1) {
-                                deviceName = "";
-                            } else {
-                                deviceName = s.substring(4, end);
-                            }
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                        return String.format(Locale.US, "name,%s,%s\n", getFormattedTime(), deviceName);
                 }
                 break;
             default:
