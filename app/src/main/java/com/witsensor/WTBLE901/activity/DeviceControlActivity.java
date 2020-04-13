@@ -722,6 +722,11 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             mNavView.getMenu().findItem(R.id.action_mark).setEnabled(false);
         }
 
+        for (int id : new int[] {R.id.action_resume, R.id.action_acli, R.id.action_cali_l, R.id.action_cali_r, R.id.action_magcali,
+                                 R.id.action_d0, R.id.action_d1, R.id.action_d2, R.id.action_d3, R.id.action_rename}) {
+            mNavView.getMenu().findItem(id).setEnabled(mService != null && mService.isConnected(mCurrentDevice));
+        }
+
         tvStatus.setText(statusStr);
 
         tvAddress.setText(mCurrentDevice);
