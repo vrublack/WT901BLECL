@@ -704,13 +704,21 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
     }
 
     private void refreshStatus() {
+        String statusStr;
+
         if (mService != null && mService.isConnected(mCurrentDevice)) {
             mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_disconnect);
-            tvStatus.setText(R.string.connected);
+            statusStr = getString(R.string.connected);
         } else {
             mNavView.getMenu().findItem(R.id.action_connect).setTitle(R.string.menu_connect);
-            tvStatus.setText(R.string.disconnected);
+            statusStr = getString(R.string.disconnected);
         }
+
+        if (mService != null && mService.isRecording()) {
+            statusStr += ", " + getString(R.string.recording).toLowerCase();
+        }
+
+        tvStatus.setText(statusStr);
 
         tvAddress.setText(mCurrentDevice);
     }
@@ -906,6 +914,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             mService.toggleRecording();
 
             invalidateOptionsMenu();
+            refreshStatus();
 
             return true;
         }
