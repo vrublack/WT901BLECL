@@ -112,8 +112,18 @@ public class BluetoothLeService extends Service {
     }
 
     public void addMark(String device) {
-        if (mRecording && mFile.containsKey(device))
+        if (mRecording && mFile.containsKey(device) && !mFile.get(device).isClosed())
             mFile.get(device).mark();
+    }
+
+    public void addMarkAll() {
+        if (!mRecording)
+            return;
+
+        for(MyFile file : mFile.values()) {
+            if (!file.isClosed())
+                file.mark();
+        }
     }
 
     public File getPath(String device) {
@@ -493,6 +503,7 @@ public class BluetoothLeService extends Service {
     class MyFile {
         FileOutputStream fout;
         File path;
+        boolean closed = false;
 
         public MyFile(File file) throws FileNotFoundException {
             this.path = file;
@@ -507,6 +518,7 @@ public class BluetoothLeService extends Service {
         public void close() throws IOException {
             fout.close();
             fout.flush();
+            closed = true;
         }
 
         public void mark() {
@@ -515,6 +527,10 @@ public class BluetoothLeService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        public boolean isClosed() {
+            return closed;
         }
     }
 

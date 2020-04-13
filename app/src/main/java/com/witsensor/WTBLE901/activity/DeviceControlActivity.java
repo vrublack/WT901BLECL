@@ -972,7 +972,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         switch (itemId) {
             case R.id.action_mark:
                 if (mService != null)
-                    mService.addMark(mCurrentDevice);
+                    mService.addMarkAll();
                 break;
             case R.id.action_chart:
                 startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
