@@ -100,6 +100,7 @@ public class BluetoothLeService extends Service {
 
     private boolean mManuallyDisconnected;  // to catch a bug where the device somehow gets reconnected
     private boolean mRecording;
+    private boolean mRecordingBaseline;
 
     public static byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
     public static byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
@@ -574,6 +575,22 @@ public class BluetoothLeService extends Service {
         public boolean isClosed() {
             return closed;
         }
+
+        public void startBaseline() {
+            try {
+                fout.write(("baseline start\n").getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void endBaseline() {
+            try {
+                fout.write(("baseline end\n").getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private String generateFname(String device) {
@@ -603,6 +620,31 @@ public class BluetoothLeService extends Service {
         updateStatusNotification();
     }
 
+    /**
+     * Records baseline of sensors in some sort of initial state
+     */
+    public void toggleRecordingBaseline() {
+        if (!mRecording)
+            return;
+
+        if (!mRecordingBaseline) {
+            mRecordingBaseline = true;
+
+            for (MyFile file : mFile.values()) {
+                if (!file.isClosed())
+                    file.startBaseline();
+            }
+
+        } else {
+            mRecordingBaseline = false;
+
+            for (MyFile file : mFile.values()) {
+                if (!file.isClosed())
+                    file.endBaseline();
+            }
+        }
+    }
+
     public void createNewFile(String device) {
         try {
             mFile.put(device, new MyFile(new File(getExternalFilesDir(null), generateFname(device))));
@@ -613,6 +655,10 @@ public class BluetoothLeService extends Service {
 
     public boolean isRecording() {
         return mRecording;
+    }
+
+    public boolean isRecordingBaseline() {
+        return mRecordingBaseline;
     }
 
     public boolean isAnyConnected() {

@@ -18,6 +18,9 @@
         android:id="@+id/action_mark"
         android:title="@string/mark" />
     <item
+        android:id="@+id/action_baseline"
+        android:title="@string/start_baseline" />
+    <item
         android:id="@+id/action_acli"
         android:title="@string/AccCali" />
     <item

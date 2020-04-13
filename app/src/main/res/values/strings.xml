@@ -83,6 +83,9 @@
     <string name="address_">Address:</string>
     <string name="SelectNoteValue">Select note value</string>
     <string name="add_note">Add Note</string>
+    <string name="start_baseline">Baseline start</string>
+    <string name="end_baseline">Baseline end</string>
+    <string name="recording_baseline">Recording baseline</string>
 
     <string-array
         name="mark_values">

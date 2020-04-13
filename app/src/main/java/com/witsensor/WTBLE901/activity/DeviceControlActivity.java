@@ -716,10 +716,20 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         }
 
         if (mService != null && mService.isRecording()) {
-            statusStr += ", " + getString(R.string.recording).toLowerCase();
+            if (mService.isRecordingBaseline())
+                statusStr += ", " + getString(R.string.recording_baseline).toLowerCase();
+            else
+                statusStr += ", " + getString(R.string.recording).toLowerCase();
             mNavView.getMenu().findItem(R.id.action_mark).setEnabled(true);
         } else {
             mNavView.getMenu().findItem(R.id.action_mark).setEnabled(false);
+        }
+
+        mNavView.getMenu().findItem(R.id.action_baseline).setEnabled(mService != null && mService.isRecording());
+        if (mService != null && mService.isRecordingBaseline()) {
+            mNavView.getMenu().findItem(R.id.action_baseline).setTitle(R.string.end_baseline);
+        } else {
+            mNavView.getMenu().findItem(R.id.action_baseline).setTitle(R.string.start_baseline);
         }
 
         for (int id : new int[] {R.id.action_resume, R.id.action_acli, R.id.action_cali_l, R.id.action_cali_r, R.id.action_magcali,
@@ -1002,6 +1012,12 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                             }).show();
                 }
                 break;
+            case R.id.action_baseline:
+                if (mService != null)
+                    mService.toggleRecordingBaseline();
+                refreshStatus();
+                break;
+
             case R.id.action_chart:
                 startActivity(new Intent(DeviceControlActivity.this, ChartActivity.class));
                 break;
