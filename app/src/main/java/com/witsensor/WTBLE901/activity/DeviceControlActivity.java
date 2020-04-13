@@ -980,17 +980,15 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
         switch (itemId) {
             case R.id.action_mark:
                 if (mService != null && mService.isRecording()) {
-                    final Spinner markSpinner = new Spinner(DeviceControlActivity.this);
-                    markSpinner.setAdapter(ArrayAdapter.createFromResource(this, R.array.mark_values, android.R.layout.simple_spinner_dropdown_item));
+                    final EditText editText = new EditText(DeviceControlActivity.this);
                     AlertDialog.Builder inputDialog =
                             new AlertDialog.Builder(DeviceControlActivity.this);
-                    inputDialog.setTitle(R.string.SelectNoteValue).setView(markSpinner);
+                    inputDialog.setTitle(R.string.add_note).setView(editText);
                     inputDialog.setPositiveButton(R.string.OK,
                             new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    int value = markSpinner.getSelectedItemPosition() + 1;
-                                    mService.addMarkAll(Integer.toString(value));
+                                    mService.addMarkAll(editText.getText().toString());
                                 }
                             });
                     inputDialog.setNegativeButton(R.string.Cancel,

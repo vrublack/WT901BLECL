@@ -82,6 +82,7 @@
     <string name="battery_">Battery:</string>
     <string name="address_">Address:</string>
     <string name="SelectNoteValue">Select note value</string>
+    <string name="add_note">Add Note</string>
 
     <string-array
         name="mark_values">
