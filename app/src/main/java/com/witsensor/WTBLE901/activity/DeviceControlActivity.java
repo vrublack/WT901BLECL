@@ -953,15 +953,6 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             recordingItem.setTitle(R.string.Record);
         }
 
-        if (mService != null && mService.isAnyConnected()) {
-            recordingItem.setEnabled(true);
-            recordingItem.getIcon().setAlpha(255);
-        } else {
-            // disabled
-            recordingItem.setEnabled(false);
-            recordingItem.getIcon().setAlpha(130);
-        }
-
         return true;
     }
 
