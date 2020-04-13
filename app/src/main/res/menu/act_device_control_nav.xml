@@ -6,9 +6,6 @@
         android:id="@+id/action_connect"
         android:title="@string/menu_connect" />
     <item
-        android:id="@+id/action_resume"
-        android:title="@string/Resume" />
-    <item
         android:id="@+id/action_connect_other"
         android:title="@string/connect_other" />
     <item
@@ -50,5 +47,8 @@
     <item
         android:id="@+id/action_rename"
         android:title="@string/Rename" />
+    <item
+        android:id="@+id/action_resume"
+        android:title="@string/Resume" />
 
 </menu>
