@@ -1122,7 +1122,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 break;
             case R.id.action_connect_other:
                 if (mService != null)
-                    mService.disconnect(mCurrentDevice);
+                    mService.disconnectAll();
                 Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
                 startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
                 break;
