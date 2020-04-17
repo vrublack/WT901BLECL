@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.2"
 
     defaultConfig {
-        applicationId "wtzn.wtbtble901"
+        applicationId "com.witsensor.WTBLE901"
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
