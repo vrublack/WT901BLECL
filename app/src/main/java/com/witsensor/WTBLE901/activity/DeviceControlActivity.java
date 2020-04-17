@@ -453,6 +453,8 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             String[] comps = name.split(" - ");
             String label = comps[0];
             String address = comps[1];
+            if (label.equals("null"))
+                label = address;
             formattedNames.add(new Pair<>(address, label));
         }
         return formattedNames;
