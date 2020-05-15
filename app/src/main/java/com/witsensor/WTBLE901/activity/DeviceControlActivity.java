@@ -61,6 +61,8 @@ import java.util.Set;
 
 import com.witsensor.WTBLE901.R;
 
+import static com.witsensor.WTBLE901.Constants.*;
+
 
 public class DeviceControlActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, View.OnClickListener, ViewPager.OnPageChangeListener {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
@@ -827,19 +829,19 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                             handler.sendEmptyMessageAtTime(0, 5000);
                             switch (DisplayIndex) {
                                 case 2://Angle
-                                    mService.writeByes(mCurrentDevice, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x40, (byte) 0x00});
+                                    mService.writeByes(mCurrentDevice, REQUEST_ANGLE);
                                     break;
                                 case 3://Mag
-                                    mService.writeByes(mCurrentDevice, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x3A, (byte) 0x00});
+                                    mService.writeByes(mCurrentDevice, REQUEST_MAGN);
                                     break;
                                 case 4://Pressure
-                                    mService.writeByes(mCurrentDevice, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x45, (byte) 0x00});
+                                    mService.writeByes(mCurrentDevice, REQUEST_PRESSURE);
                                     break;
                                 case 5://Port
-                                    mService.writeByes(mCurrentDevice, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x41, (byte) 0x00});
+                                    mService.writeByes(mCurrentDevice, REQUEST_PORT);
                                     break;
                                 case 6://Quater
-                                    mService.writeByes(mCurrentDevice, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x27, (byte) 0x51, (byte) 0x00});
+                                    mService.writeByes(mCurrentDevice, REQUEST_QUATER);
                                     break;
                             }
                         }
