@@ -87,6 +87,7 @@
     <string name="end_baseline">Baseline end</string>
     <string name="recording_baseline">Recording baseline</string>
     <string name="failed_set_rate">Failed to set sampling rate</string>
+    <string name="integrity_check_message">Warning: %d devices recorded suspiciously little data</string>
 
     <string-array
         name="mark_values">

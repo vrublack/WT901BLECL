@@ -121,10 +121,6 @@ public class Data {
         return null;
     }
 
-    public static Data dummyData() {
-        return new Data();
-    }
-
     public float[] getAllSensorData() {
         return new float[]{acc[0], acc[1], acc[2], gyr[0], gyr[1], gyr[2], angle[0], angle[1], angle[2], magn[0], magn[1], magn[2],
                 port[0], port[1], port[2], port[3], quaternion[0], quaternion[1], quaternion[2], quaternion[3], battery, pressure, altitude, temperature};

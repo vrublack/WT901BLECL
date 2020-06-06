@@ -45,7 +45,6 @@ import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.RemoteInput;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.witsensor.WTBLE901.data.Data;
 
@@ -64,6 +63,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.witsensor.WTBLE901.R;
+import com.witsensor.WTBLE901.data.Statistics;
 
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
@@ -71,7 +71,8 @@ public class BluetoothLeService extends Service {
     private static final String KEY_NOTE = "key_note";
 
     public static final String CHANNEL_ID = "SensorServiceChannel";
-    private static final int NOTIFICATION_ID = 1;
+    private static final int NOTIFICATION_ID_STATUS = 1;
+    private static final int NOTIFICATION_ID_INTEGRITY = 2;
 
     private static final CharSequence CHARACTERISTIC_WRITE = "ffe9";
     private static final CharSequence CHARACTERISTIC_READ = "ffe4";
@@ -88,10 +89,13 @@ public class BluetoothLeService extends Service {
     private Map<String, Boolean> mConnected = new HashMap<>();
     private Map<String, Data> mData = new HashMap<>();
     private Map<String, MyFile> mFile = new HashMap<>();
+    private Map<String, Statistics> mStats = new HashMap<>();
 
     private boolean mManuallyDisconnected;  // to catch a bug where the device somehow gets reconnected
     private boolean mRecording;
     private boolean mRecordingBaseline;
+
+    private long lastIntegrityCheckTime = System.currentTimeMillis();
 
     public static byte[] cell = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x64, 0x00};
     public static byte[] mDeviceID = new byte[]{(byte) 0xff, (byte) 0xaa, 0x27, 0x68, 0x00};
@@ -120,7 +124,7 @@ public class BluetoothLeService extends Service {
         if (!mRecording)
             return;
 
-        for(MyFile file : mFile.values()) {
+        for (MyFile file : mFile.values()) {
             if (!file.isClosed())
                 file.mark(note);
         }
@@ -133,7 +137,9 @@ public class BluetoothLeService extends Service {
 
     public interface UICallback {
         void handleBLEData(String deviceAddress, Data data);
+
         void onConnected(String deviceAddress);
+
         void onDisconnected(String deviceAddress);
     }
 
@@ -145,8 +151,18 @@ public class BluetoothLeService extends Service {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 if (!mManuallyDisconnected) {
                     mConnected.put(device, true);
+
+                    if (!mData.containsKey(device))
+                        mData.put(device, new Data());
+
+                    if (!mStats.containsKey(device))
+                        mStats.put(device, new Statistics());
+                    else
+                        mStats.get(device).resume();
+
                     if (mUICallback != null)
                         mUICallback.onConnected(device);
+
                     writeByes(device, cell);
 
                     updateStatusNotification();
@@ -159,6 +175,7 @@ public class BluetoothLeService extends Service {
                 Log.i(TAG, "Disconnected from GATT server.");
                 mConnected.put(device, false);
                 mNotifyCharacteristic.remove(device);
+                mStats.get(device).pause();
 
                 if (mUICallback != null)
                     mUICallback.onDisconnected(device);
@@ -211,13 +228,29 @@ public class BluetoothLeService extends Service {
         }
 
         if (mRecording)
-            passNotification(String.format(getString(R.string.recording_status), connected, mConnected.size()));
+            passNotification(String.format(getString(R.string.recording_status), connected, mConnected.size()), NOTIFICATION_ID_STATUS, true);
         else
-            passNotification(String.format(getString(R.string.not_recording_status), connected, mConnected.size()));
+            passNotification(String.format(getString(R.string.not_recording_status), connected, mConnected.size()), NOTIFICATION_ID_STATUS, false);
+    }
+
+    private void updateIntegrityNotification(int devicesFailed) {
+        if (devicesFailed == 0) {
+            removeNotification(NOTIFICATION_ID_INTEGRITY);
+        } else {
+            passNotification(String.format(getString(R.string.integrity_check_message), devicesFailed), NOTIFICATION_ID_INTEGRITY, false);
+        }
     }
 
     @SuppressLint("DefaultLocale")
     private void handleBLEData(String device, byte[] packBuffer) {
+        mStats.get(device).logSampleReceived();
+
+        // do this check every 30 minutes
+        if (System.currentTimeMillis() - lastIntegrityCheckTime > 30 * 60 * 1000L) {
+            checkIntegrity();
+            lastIntegrityCheckTime = System.currentTimeMillis();
+        }
+
         StringBuilder sdata = new StringBuilder();
         for (byte aPackBuffer : packBuffer) {
             sdata.append(String.format("%02x", (0xff & aPackBuffer)));
@@ -225,8 +258,6 @@ public class BluetoothLeService extends Service {
 
         String formatted;
         if (packBuffer.length == 20) {
-            if (!mData.containsKey(device))
-                mData.put(device, new Data());
             formatted = mData.get(device).update(packBuffer);
             if (mRecording && formatted != null) {
                 if (!mFile.containsKey(device))
@@ -237,12 +268,29 @@ public class BluetoothLeService extends Service {
                     e.printStackTrace();
                 }
             }
-        } else {
-            mData.put(device, Data.dummyData());
         }
 
         updateTime(device);
     }
+
+    private void checkIntegrity() {
+        Map<String, Double> samplesPerSecond = new HashMap<>();
+        double maxSamplesPerSecond = -1;
+        for (Map.Entry<String, Statistics> entry : mStats.entrySet()) {
+            samplesPerSecond.put(entry.getKey(), entry.getValue().getSamplesPerSecond());
+            maxSamplesPerSecond = Math.max(maxSamplesPerSecond, samplesPerSecond.get(entry.getKey()));
+        }
+
+        int devicesFailed = 0;
+        for (String device : samplesPerSecond.keySet()) {
+            if (samplesPerSecond.get(device) < maxSamplesPerSecond * 0.8) {
+                devicesFailed++;
+            }
+        }
+
+        updateIntegrityNotification(devicesFailed);
+    }
+
 
     public void updateTime(String device) {
         Calendar t = mData.get(device).getTime();
@@ -297,7 +345,8 @@ public class BluetoothLeService extends Service {
     public void onDestroy() {
         super.onDestroy();
         disconnectAll();
-        removeNotification();
+        removeNotification(NOTIFICATION_ID_STATUS);
+        removeNotification(NOTIFICATION_ID_INTEGRITY);
         unregisterReceiver(mNoteReceiver);
         isRunning = false;
     }
@@ -374,7 +423,7 @@ public class BluetoothLeService extends Service {
 
     public void disconnectAll() {
         for (String address : mConnected.keySet()) {
-             disconnect(address);
+            disconnect(address);
         }
     }
 
@@ -397,7 +446,7 @@ public class BluetoothLeService extends Service {
             notificationManager.createNotificationChannel(channel);
         }
 
-        startForeground(NOTIFICATION_ID, getNotification(getString(R.string.not_connected)));
+        startForeground(NOTIFICATION_ID_STATUS, getNotification(getString(R.string.not_connected), false));
 
         return START_NOT_STICKY;
     }
@@ -418,7 +467,7 @@ public class BluetoothLeService extends Service {
 
     private NoteReceiver mNoteReceiver = new NoteReceiver();
 
-    private Notification getNotification(String msg) {
+    private Notification getNotification(String msg, boolean replyAction) {
         Intent notificationIntent = new Intent(this, DeviceControlActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
@@ -429,7 +478,7 @@ public class BluetoothLeService extends Service {
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(pendingIntent);
 
-        if (mRecording) {
+        if (replyAction) {
             RemoteInput remoteInput = new RemoteInput.Builder(KEY_NOTE)
                     .setLabel(getResources().getString(R.string.mark))
                     .build();
@@ -453,16 +502,16 @@ public class BluetoothLeService extends Service {
         return b.build();
     }
 
-    private void passNotification(String msg) {
+    private void passNotification(String msg, int id, boolean replyAction) {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, getNotification(msg));
+        notificationManager.notify(id, getNotification(msg, replyAction));
     }
 
-    private void removeNotification() {
+    private void removeNotification(int id) {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-        notificationManager.cancel(NOTIFICATION_ID);
+        notificationManager.cancel(id);
     }
 
     public void readCharacteristic(String device, BluetoothGattCharacteristic characteristic) {
