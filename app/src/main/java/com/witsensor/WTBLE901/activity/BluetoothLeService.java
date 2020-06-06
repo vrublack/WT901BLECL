@@ -586,7 +586,7 @@ public class BluetoothLeService extends Service {
                                 Log.e(TAG, "Failed to set rate");
                             }
                         }
-                    }, 5000);
+                    }, 1000);
                 }
 
                 if (uuid.toLowerCase().contains(CHARACTERISTIC_READ)) {//Read
