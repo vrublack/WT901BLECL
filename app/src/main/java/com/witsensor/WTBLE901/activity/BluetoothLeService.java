@@ -344,7 +344,7 @@ public class BluetoothLeService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        disconnectAll();
+        disconnectAll(true);
         removeNotification(NOTIFICATION_ID_STATUS);
         removeNotification(NOTIFICATION_ID_INTEGRITY);
         unregisterReceiver(mNoteReceiver);
@@ -409,7 +409,7 @@ public class BluetoothLeService extends Service {
         return success;
     }
 
-    public void disconnect(String device) {
+    public void disconnect(String device, boolean releaseResources) {
         if (!mConnected.get(device))
             return;
         if (mBluetoothAdapter == null || mBluetoothGatt.get(device) == null) {
@@ -417,13 +417,19 @@ public class BluetoothLeService extends Service {
             return;
         }
         mManuallyDisconnected = true;
-        mBluetoothGatt.get(device).disconnect();
+        if (releaseResources) {
+            mGattCallback.onConnectionStateChange(mBluetoothGatt.get(device), 0, BluetoothProfile.STATE_DISCONNECTED);
+            mBluetoothGatt.get(device).close();
+            mBluetoothGatt.remove(device);
+        } else {
+            mBluetoothGatt.get(device).disconnect();
+        }
         mConnected.put(device, false);
     }
 
-    public void disconnectAll() {
+    public void disconnectAll(boolean releaseResources) {
         for (String address : mConnected.keySet()) {
-            disconnect(address);
+            disconnect(address, releaseResources);
         }
     }
 
@@ -544,7 +550,7 @@ public class BluetoothLeService extends Service {
     }
 
     public boolean writeByes(String device, byte[] bytes) {
-        if (mNotifyCharacteristic.get(device) != null) {
+        if (mNotifyCharacteristic.get(device) != null && mBluetoothGatt.get(device) != null) {
             mNotifyCharacteristic.get(device).setValue(bytes);
             return mBluetoothGatt.get(device).writeCharacteristic(mNotifyCharacteristic.get(device));
         } else {
@@ -553,7 +559,7 @@ public class BluetoothLeService extends Service {
     }
 
     public boolean writeString(String device, String s) {
-        if (mNotifyCharacteristic.get(device) != null) {
+        if (mNotifyCharacteristic.get(device) != null && mBluetoothGatt.get(device) != null) {
             mNotifyCharacteristic.get(device).setValue(s);
             return mBluetoothGatt.get(device).writeCharacteristic(mNotifyCharacteristic.get(device));
         } else {

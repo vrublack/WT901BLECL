@@ -900,7 +900,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
             bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
             return true;
         } else if (i == R.id.menu_disconnect) {
-            mService.disconnect(mCurrentDevice);
+            mService.disconnect(mCurrentDevice, true);
             if (mService != null) {
                 unbindService(mServiceConnection);
                 mService = null;
@@ -1114,7 +1114,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 if (mService.isAnyConnected()) {
                     // disconnect
                     if (mService != null) {
-                        mService.disconnect(mCurrentDevice);
+                        mService.disconnect(mCurrentDevice, true);
                     }
                 } else {
                     // connect
@@ -1128,7 +1128,7 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                 break;
             case R.id.action_connect_other:
                 if (mService != null)
-                    mService.disconnectAll();
+                    mService.disconnectAll(true);
                 Intent serverIntent = new Intent(DeviceControlActivity.this, DeviceScanActivity.class);
                 startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
                 break;
