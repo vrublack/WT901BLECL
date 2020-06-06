@@ -30,7 +30,7 @@
     <string name="menu_disconnect">Disconnect</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
-    <string name="SelectRate">Please select output rate:</string>
+    <string name="SelectRate">Sampling rate for all sensors:</string>
     <string name="OK">OK</string>
     <string name="Cancel">Cancel</string>
     <string name="SelectPortMode">Please select port mode:</string>
