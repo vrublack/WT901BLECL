@@ -338,7 +338,9 @@ public class DeviceControlActivity extends AppCompatActivity implements Navigati
                         SharedPreferences.Editor editor = mySharedPreferences.edit();
                         editor.putInt("Rate", mOutputRate);
                         editor.commit();
-                        mService.setRateAll(mOutputRate);
+                        if (!mService.setRateAll(mOutputRate)) {
+                            Toast.makeText(DeviceControlActivity.this, R.string.failed_set_rate, Toast.LENGTH_SHORT).show();
+                        }
                     }
                 })
                 .setNegativeButton(R.string.Cancel, null)

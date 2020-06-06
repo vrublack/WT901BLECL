@@ -39,7 +39,9 @@ import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.RemoteInput;
 import android.util.Log;
@@ -71,20 +73,9 @@ public class BluetoothLeService extends Service {
     public static final String CHANNEL_ID = "SensorServiceChannel";
     private static final int NOTIFICATION_ID = 1;
 
-    private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTING = 1;
-    private static final int STATE_CONNECTED = 2;
-
-    public final static String ACTION_GATT_CONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED =
-            "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
+    private static final CharSequence CHARACTERISTIC_WRITE = "ffe9";
+    private static final CharSequence CHARACTERISTIC_READ = "ffe4";
+    private static final String CHARACTERISTIC_READ_DESCRIPTOR = "00002902-0000-1000-8000-00805f9b34fb";
 
     public static boolean isRunning = false;
 
@@ -109,13 +100,15 @@ public class BluetoothLeService extends Service {
 
     private UICallback mUICallback;
 
-    public void setRateAll(int iOutputRate) {
+    public boolean setRateAll(int iOutputRate) {
+        boolean success = true;
         for (String device : mBluetoothGatt.keySet())
-            setRate(device, iOutputRate);
+            success = success && setRate(device, iOutputRate);
+        return success;
     }
 
-    public void setRate(String device, int iOutputRate) {
-        writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
+    public boolean setRate(String device, int iOutputRate) {
+        return writeByes(device, new byte[]{(byte) 0xff, (byte) 0xaa, (byte) 0x03, (byte) iOutputRate, (byte) 0x00});
     }
 
     public void addMark(String device, String note) {
@@ -148,15 +141,13 @@ public class BluetoothLeService extends Service {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            String device = gatt.getDevice().getAddress();
+            final String device = gatt.getDevice().getAddress();
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 if (!mManuallyDisconnected) {
                     mConnected.put(device, true);
                     if (mUICallback != null)
                         mUICallback.onConnected(device);
                     writeByes(device, cell);
-
-                    setRate(device, getSharedPreferences("Output", Activity.MODE_PRIVATE).getInt("Rate", 6));
 
                     updateStatusNotification();
 
@@ -521,7 +512,7 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    private void getWorkableGattServices(String device, List<BluetoothGattService> gattServices) {
+    private void getWorkableGattServices(final String device, List<BluetoothGattService> gattServices) {
         if (gattServices == null)
             return;
         String uuid = null;
@@ -529,13 +520,23 @@ public class BluetoothLeService extends Service {
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                 uuid = gattCharacteristic.getUuid().toString();
-                if (uuid.toLowerCase().contains("ffe9")) {//write
+                if (uuid.toLowerCase().contains(CHARACTERISTIC_WRITE)) {//write
                     mNotifyCharacteristic.put(device, gattCharacteristic);
                     setCharacteristicNotification(device, gattCharacteristic, true);
+
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!setRate(device, getSharedPreferences("Output", Activity.MODE_PRIVATE).getInt("Rate", 6))) {
+                                Log.e(TAG, "Failed to set rate");
+                            }
+                        }
+                    }, 5000);
                 }
-                if (uuid.toLowerCase().contains("ffe4")) {//Read
+
+                if (uuid.toLowerCase().contains(CHARACTERISTIC_READ)) {//Read
                     setCharacteristicNotification(device, gattCharacteristic, true);
-                    BluetoothGattDescriptor descriptor = gattCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+                    BluetoothGattDescriptor descriptor = gattCharacteristic.getDescriptor(UUID.fromString(CHARACTERISTIC_READ_DESCRIPTOR));
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                     mBluetoothGatt.get(device).writeDescriptor(descriptor);
                 }
