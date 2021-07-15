@@ -26,6 +26,9 @@ android {
 }
 
 dependencies {
+    implementation 'com.android.support:support-annotations:28.0.0'
+    implementation 'org.jetbrains:annotations:15.0'
+    implementation 'org.jetbrains:annotations:15.0'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:support-compat:28.0.0'

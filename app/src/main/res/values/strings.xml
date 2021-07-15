@@ -89,13 +89,5 @@
     <string name="failed_set_rate">Failed to set sampling rate</string>
     <string name="integrity_check_message">Warning: %d devices recorded suspiciously little data</string>
 
-    <string-array
-        name="mark_values">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-        <item>4</item>
-        <item>5</item>
-    </string-array>
 
 </resources>
