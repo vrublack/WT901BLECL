@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WT901BLE</string>
+    <string name="intro_message">null</string>
+    <string name="ble_not_supported">Bluetooth BLE non supporté</string>
+    <string name="no_data" translatable="false">Pas de data</string>
+    <string name="connected">Connecté</string>
+    <string name="disconnected">Déconnecté</string>
+    <string name="title_devices" translatable="false">Recherche de dispositifs BLE</string>
+    <string name="error_bluetooth_not_supported">Bluetooth non supporté</string>
+    <string name="unknown_device" translatable="false">Dispositif inconnu</string>
+    <string name="unknown_characteristic" translatable="false">Characteristiques inconnues</string>
+    <string name="unknown_service" translatable="false">Service inconnu</string>
+    <string name="menu_connect">Connecter</string>
+    <string name="menu_disconnect">Déconnecter</string>
+    <string name="menu_scan">Recherche</string>
+    <string name="menu_stop">Arrêter</string>
+    <string name="SelectRate">Refraichissement pour tous les capteurs</string>
+    <string name="OK">Ok</string>
+    <string name="Cancel">Annuler</string>
+    <string name="SelectPortMode">Selectionnez le mode du port</string>
+    <string name="Finish">Terminé</string>
+    <string name="Save">Sauvegarder</string>
+    <string name="Resume">Paramètres d\'usine</string>
+    <string name="Rename">Renommer</string>
+    <string name="Setting">Ajuster</string>
+    <string name="Record">Enrégistrer</string>
+    <string name="hint">Tip</string>
+    <string name="EnterName">Nouveau nom</string>
+    <string name="sure">Sur ?</string>
+</resources>
