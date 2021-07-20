@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WT901BLE</string>
-    <string name="intro_message">null</string>
+    <string name="intro_message">"         <![CDATA[                                   This sample demonstrates how to use the Bluetooth LE Generic Attribute Profile (GATT)             to transmit arbitrary data between devices.                               ]]>     "</string>
     <string name="ble_not_supported">Bluetooth BLE non supporté</string>
     <string name="no_data" translatable="false">Pas de data</string>
     <string name="connected">Connecté</string>
@@ -28,4 +28,19 @@
     <string name="hint">Tip</string>
     <string name="EnterName">Nouveau nom</string>
     <string name="sure">Sur ?</string>
+    <string name="connect_failed">Connexion échouée</string>
+    <string name="connect_other">Connexion à un autre dispositif</string>
+    <string name="recording_waiting_reconnect" translatable="false">" En cours d'enregistrement mais en attente de connexion"</string>
+    <string name="refresh">Actualiser</string>
+    <string name="okay">Ok</string>
+    <string name="battery_">Batterie:</string>
+    <string name="address_">MAC:</string>
+    <string name="Rate">Taux de refraichissement</string>
+    <string name="not_connected">Non connecté</string>
+    <string name="disconnect">Déconnecté</string>
+    <string name="status_">Etat:</string>
+    <string name="gyr">Gyro</string>
+    <string name="chart">Charte</string>
+    <string name="recording">En cours d\'enregistrement</string>
+    <string name="open_file" translatable="false">Ouvrir fichier ?</string>
 </resources>
