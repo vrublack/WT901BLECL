@@ -37,5 +37,6 @@ dependencies {
     implementation files('libs/eventbus-3.0.0.jar')
     implementation files('libs/MPAndroidChart-v3.0.2.jar')
     implementation 'com.google.android.material:material:1.4.0'
+    //noinspection GradleDependency
     implementation 'com.jakewharton:butterknife:5.1.1'
 }
