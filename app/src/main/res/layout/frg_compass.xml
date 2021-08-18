@@ -18,7 +18,8 @@
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/circle3" />
+            android:src="@drawable/circle3"
+            android:contentDescription="TODO" />
 
         <com.witsensor.WTBLE901.CompassView
             android:id="@+id/myCpv"

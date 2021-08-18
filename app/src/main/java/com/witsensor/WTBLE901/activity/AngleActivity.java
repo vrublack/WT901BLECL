@@ -2,24 +2,23 @@ package com.witsensor.WTBLE901.activity;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.view.ViewPager;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager.widget.ViewPager;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.witsensor.WTBLE901.R;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import com.witsensor.WTBLE901.R;
 
 
 /**
  * Created by 葛文博 on 2017/10/25.
  */
-public class AngleActivity extends FragmentActivity implements ViewPager.OnPageChangeListener {
+public class AngleActivity<Fragment> extends FragmentActivity implements ViewPager.OnPageChangeListener {
 
     private List<Fragment> list = new ArrayList<>();
 
